@@ -254,3 +254,47 @@ th, td {
 .training-camera-frame {
   margin-top: 12px;
 }
+
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
+.recognition-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.recognition-card {
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.recognition-card div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recognition-card p {
+  margin: 8px 0 0;
+  color: #475569;
+}
+
+.camera-frame {
+  position: relative;
+}
+
+#detection-overlay {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  pointer-events: none;
+  border-radius: 12px;
+}

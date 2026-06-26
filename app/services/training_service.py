@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 import re
 from pathlib import Path
 
@@ -67,8 +67,8 @@ def _largest_face(frame):
     faces = face_cascade.detectMultiScale(
         gray,
         scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(80, 80),
+        minNeighbors=4,
+        minSize=(40, 40),
     )
 
     if len(faces) == 0:
@@ -119,3 +119,4 @@ def save_face_capture(db: Session, student_code: str, image_data: str) -> dict:
 
 def train_model() -> dict:
     return face_training.train_lbph_model()
+

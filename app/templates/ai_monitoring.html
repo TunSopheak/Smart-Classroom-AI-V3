@@ -1,11 +1,16 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <div class="page-header">
   <div>
     <h1>AI Monitoring</h1>
-    <p class="muted">Computer camera preview now. Face recognition and behavior AI will be connected in the next stages.</p>
+    <p class="muted">Computer camera preview with face recognition attendance.</p>
   </div>
-  <span class="status-pill status-info">Stage 1 Camera Preview</span>
+
+  {% if face_model.trained %}
+    <span class="status-pill status-success">Face Model Ready</span>
+  {% else %}
+    <span class="status-pill status-warning">Train Face Model First</span>
+  {% endif %}
 </div>
 
 <section class="cards">
@@ -26,7 +31,7 @@
     </div>
 
     <div id="camera-frame" class="camera-frame">
-      <video id="camera-preview" autoplay muted playsinline></video>
+      <video id="camera-preview" autoplay muted playsinline></video>`n      <canvas id="detection-overlay"></canvas>
     </div>
 
     <div class="button-row">
@@ -34,30 +39,60 @@
       <button id="stop-camera" disabled>Stop Camera</button>
     </div>
 
+    <div class="button-row">
+      <button id="analyze-once" disabled>Analyze Once</button>
+      <button id="start-ai" disabled>Start AI Attendance</button>
+      <button id="stop-ai" disabled>Stop AI Attendance</button>
+    </div>
+
     <div class="note-box">
       <strong>Demo note:</strong>
-      Camera preview is working. Real face recognition attendance will be added after AI Training Center.
+      Start camera first, then click Analyze Once or Start AI Attendance.
     </div>
   </div>
 
-  <div class="panel">
-    <div class="panel-header">
-      <div>
-        <h2>Behavior Monitoring</h2>
-        <p class="muted">Candidate review only, not final student judgment.</p>
+  <div class="stack">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Face Recognition Attendance</h2>
+          <p class="muted">Recognized trained students will be recorded automatically.</p>
+        </div>
+        <span id="face-ai-badge" class="status-pill {% if face_model.trained %}status-success{% else %}status-warning{% endif %}">
+          {% if face_model.trained %}Model Ready{% else %}Not Trained{% endif %}
+        </span>
       </div>
-      <span id="behavior-badge" class="status-pill status-warning">AI Not Started</span>
+
+      <div id="recognition-status" class="note-box">
+        {% if face_model.trained %}
+          Start camera and analyze a frame.
+        {% else %}
+          Please go to AI Training and train the face model first.
+        {% endif %}
+      </div>
+
+      <div id="recognition-list" class="recognition-list"></div>
     </div>
 
-    <div class="behavior-list">
-      <div><span>Person Count</span><strong>{{ behavior.person_count }}</strong></div>
-      <div><span>Phone-use Candidates</span><strong>{{ behavior.phone_candidates }}</strong></div>
-      <div><span>Looking-away Candidates</span><strong>{{ behavior.looking_away_candidates }}</strong></div>
-      <div><span>Head-down Candidates</span><strong>{{ behavior.head_down_candidates }}</strong></div>
-    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Behavior Monitoring</h2>
+          <p class="muted">Candidate review only, not final student judgment.</p>
+        </div>
+        <span id="behavior-badge" class="status-pill status-warning">AI Not Started</span>
+      </div>
 
-    <div id="behavior-system-status" class="note-box">
-      Behavior AI is not connected yet. Stage 2/5 will analyze camera frames.
+      <div class="behavior-list">
+        <div><span>Person Count</span><strong>{{ behavior.person_count }}</strong></div>
+        <div><span>Phone-use Candidates</span><strong>{{ behavior.phone_candidates }}</strong></div>
+        <div><span>Looking-away Candidates</span><strong>{{ behavior.looking_away_candidates }}</strong></div>
+        <div><span>Head-down Candidates</span><strong>{{ behavior.head_down_candidates }}</strong></div>
+      </div>
+
+      <div id="behavior-system-status" class="note-box">
+        Behavior AI is not connected yet. Face attendance is the current stage.
+      </div>
     </div>
   </div>
 </section>
@@ -77,3 +112,4 @@
 
 <script src="/static/js/camera.js"></script>
 {% endblock %}
+
