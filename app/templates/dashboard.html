@@ -1,7 +1,15 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<h1>Dashboard</h1>
-<p class="muted">Clean V3 demo: AI Attendance + Behavior Monitoring.</p>
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="muted">Clean V3 demo: AI Attendance + Behavior Monitoring.</p>
+  </div>
+
+  <form method="post" action="/demo/reset" onsubmit="return confirm('Reset demo attendance and create a fresh session? Students and face model will be kept.');">
+    <button class="danger-button">Reset Demo</button>
+  </form>
+</div>
 
 <section class="cards">
   <div class="card"><span>Total Students</span><strong>{{ summary.total_students }}</strong></div>
@@ -13,13 +21,33 @@
 <h2>Active Session</h2>
 {% if summary.session %}
 <div class="panel">
-  <strong>{{ summary.session.title }}</strong>
-  <p>{{ summary.session.class_name }} | {{ summary.session.subject }} | {{ summary.session.room }}</p>
-  <p>{{ summary.session.start_time }} - {{ summary.session.close_time }}</p>
+  <div class="panel-header">
+    <div>
+      <strong>{{ summary.session.title }}</strong>
+      <p>{{ summary.session.class_name }} | {{ summary.session.subject }} | {{ summary.session.room }}</p>
+      <p>Start: {{ summary.session.start_time }}</p>
+      <p>Late after: {{ summary.session.late_time }}</p>
+      <p>Close: {{ summary.session.close_time }}</p>
+    </div>
+    <span class="status-pill status-success">Active</span>
+  </div>
 </div>
 {% else %}
-<p>No active session.</p>
+<div class="panel">
+  <p>No active session. Click Reset Demo to create a fresh demo session.</p>
+</div>
 {% endif %}
+
+<h2>Demo Flow</h2>
+<div class="panel">
+  <ol>
+    <li>Click <strong>Reset Demo</strong> before presentation.</li>
+    <li>Go to <strong>AI Training</strong> if face model is not trained yet.</li>
+    <li>Go to <strong>AI Monitoring</strong>.</li>
+    <li>Start camera and click <strong>Analyze Once</strong> or <strong>Start AI Attendance</strong>.</li>
+    <li>Recognized students will be marked Present or Late automatically.</li>
+  </ol>
+</div>
 
 <h2>Recent Attendance</h2>
 <table>
@@ -27,7 +55,15 @@
   {% for r in recent %}
   <tr>
     <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
-    <td>{{ r.status }}</td>
+    <td>
+      {% if r.status == "present" %}
+        <span class="status-pill status-success">{{ r.status }}</span>
+      {% elif r.status == "late" %}
+        <span class="status-pill status-warning">{{ r.status }}</span>
+      {% else %}
+        <span class="status-pill status-muted">{{ r.status }}</span>
+      {% endif %}
+    </td>
     <td>{{ r.method }}</td>
     <td>{{ r.first_seen_time or "-" }}</td>
   </tr>

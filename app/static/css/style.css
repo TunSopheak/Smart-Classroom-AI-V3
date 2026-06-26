@@ -298,3 +298,11 @@ th, td {
   pointer-events: none;
   border-radius: 12px;
 }
+
+.danger-button {
+  background: #dc2626;
+}
+
+.danger-button:hover {
+  background: #b91c1c;
+}
