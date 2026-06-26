@@ -1,0 +1,77 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>System Status</h1>
+    <p class="muted">Demo readiness overview for Smart Classroom AI V3.</p>
+  </div>
+
+  {% if status.database_ok %}
+    <span class="status-pill status-success">System Ready</span>
+  {% else %}
+    <span class="status-pill status-danger">System Issue</span>
+  {% endif %}
+</div>
+
+<section class="cards">
+  <div class="card"><span>Database</span><strong>{{ "OK" if status.database_ok else "Error" }}</strong></div>
+  <div class="card"><span>Students</span><strong>{{ status.students_count }}</strong></div>
+  <div class="card"><span>Dataset Images</span><strong>{{ status.total_dataset_images }}</strong></div>
+  <div class="card"><span>Trained Students</span><strong>{{ status.trained_students }}</strong></div>
+</section>
+
+<section class="grid">
+  <div class="panel">
+    <h2>Current Demo Status</h2>
+    <p><strong>App:</strong> {{ status.app_name }}</p>
+    <p><strong>Database:</strong> {{ status.database_message }}</p>
+    <p><strong>Camera Mode:</strong> {{ status.camera_mode }}</p>
+    <p><strong>Face Model:</strong>
+      {% if status.face_model_trained %}
+        <span class="status-pill status-success">Trained</span>
+      {% else %}
+        <span class="status-pill status-warning">Not Trained</span>
+      {% endif %}
+    </p>
+
+    {% if status.active_session %}
+      <p><strong>Active Session:</strong> {{ status.active_session.title }}</p>
+      <p><strong>Start:</strong> {{ status.active_session.start_time }}</p>
+      <p><strong>Late After:</strong> {{ status.active_session.late_time }}</p>
+      <p><strong>Close:</strong> {{ status.active_session.close_time }}</p>
+    {% else %}
+      <p><strong>Active Session:</strong> None</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Raspberry Pi 5 Readiness</h2>
+    {% if status.raspberry_pi_ready %}
+      <span class="status-pill status-success">Prepared</span>
+    {% else %}
+      <span class="status-pill status-warning">Not Ready</span>
+    {% endif %}
+    <p class="note-box">{{ status.raspberry_pi_note }}</p>
+    <p class="muted">
+      Recommended demo setup: use computer camera for stable presentation, then explain Raspberry Pi 5 as deployable classroom camera source.
+    </p>
+  </div>
+</section>
+
+<h2>Feature Checklist</h2>
+<table>
+  <tr><th>Feature</th><th>Status</th></tr>
+  {% for feature in status.features %}
+  <tr>
+    <td>{{ feature.name }}</td>
+    <td>
+      {% if feature.status == "Ready" %}
+        <span class="status-pill status-success">{{ feature.status }}</span>
+      {% else %}
+        <span class="status-pill status-info">{{ feature.status }}</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
