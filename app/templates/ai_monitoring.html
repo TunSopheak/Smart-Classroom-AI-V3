@@ -3,7 +3,7 @@
 <div class="page-header">
   <div>
     <h1>AI Monitoring</h1>
-    <p class="muted">Computer camera preview with face recognition attendance.</p>
+    <p class="muted">Computer camera preview with face recognition attendance and behavior candidate monitoring.</p>
   </div>
 
   {% if face_model.trained %}
@@ -31,7 +31,8 @@
     </div>
 
     <div id="camera-frame" class="camera-frame">
-      <video id="camera-preview" autoplay muted playsinline></video>`n      <canvas id="detection-overlay"></canvas>
+      <video id="camera-preview" autoplay muted playsinline></video>
+      <canvas id="detection-overlay"></canvas>
     </div>
 
     <div class="button-row">
@@ -41,13 +42,13 @@
 
     <div class="button-row">
       <button id="analyze-once" disabled>Analyze Once</button>
-      <button id="start-ai" disabled>Start AI Attendance</button>
-      <button id="stop-ai" disabled>Stop AI Attendance</button>
+      <button id="start-ai" disabled>Start AI Monitoring</button>
+      <button id="stop-ai" disabled>Stop AI Monitoring</button>
     </div>
 
     <div class="note-box">
       <strong>Demo note:</strong>
-      Start camera first, then click Analyze Once or Start AI Attendance.
+      Green box = recognized face. Blue box = person/body candidate.
     </div>
   </div>
 
@@ -84,14 +85,14 @@
       </div>
 
       <div class="behavior-list">
-        <div><span>Person Count</span><strong>{{ behavior.person_count }}</strong></div>
-        <div><span>Phone-use Candidates</span><strong>{{ behavior.phone_candidates }}</strong></div>
-        <div><span>Looking-away Candidates</span><strong>{{ behavior.looking_away_candidates }}</strong></div>
-        <div><span>Head-down Candidates</span><strong>{{ behavior.head_down_candidates }}</strong></div>
+        <div><span>Person Count</span><strong id="person-count">{{ behavior.person_count }}</strong></div>
+        <div><span>Phone-use Candidates</span><strong id="phone-candidates">{{ behavior.phone_candidates }}</strong></div>
+        <div><span>Looking-away Candidates</span><strong id="looking-away-candidates">{{ behavior.looking_away_candidates }}</strong></div>
+        <div><span>Head-down Candidates</span><strong id="head-down-candidates">{{ behavior.head_down_candidates }}</strong></div>
       </div>
 
       <div id="behavior-system-status" class="note-box">
-        Behavior AI is not connected yet. Face attendance is the current stage.
+        Behavior AI is ready as candidate review support.
       </div>
     </div>
   </div>
@@ -110,6 +111,6 @@
   {% endfor %}
 </table>
 
-<script src="/static/js/camera.js"></script>
+<script src="/static/js/camera.js?v=5"></script>
 {% endblock %}
 

@@ -2,19 +2,25 @@
 const stopButton = document.getElementById("stop-camera");
 const video = document.getElementById("camera-preview");
 const overlay = document.getElementById("detection-overlay");
+
 const statusText = document.getElementById("camera-status");
 const cameraBadge = document.getElementById("camera-badge");
 const cameraFrame = document.getElementById("camera-frame");
 
-const behaviorBadge = document.getElementById("behavior-badge");
-const behaviorStatus = document.getElementById("behavior-system-status");
-
 const analyzeOnceButton = document.getElementById("analyze-once");
 const startAIButton = document.getElementById("start-ai");
 const stopAIButton = document.getElementById("stop-ai");
+
 const faceAIBadge = document.getElementById("face-ai-badge");
 const recognitionStatus = document.getElementById("recognition-status");
 const recognitionList = document.getElementById("recognition-list");
+
+const behaviorBadge = document.getElementById("behavior-badge");
+const behaviorStatus = document.getElementById("behavior-system-status");
+const personCountText = document.getElementById("person-count");
+const phoneCountText = document.getElementById("phone-candidates");
+const lookingAwayText = document.getElementById("looking-away-candidates");
+const headDownText = document.getElementById("head-down-candidates");
 
 let cameraStream = null;
 let aiTimer = null;
@@ -46,19 +52,17 @@ function setFaceAIStatus(message, label, className) {
   }
 }
 
-function setBehaviorMessage(message) {
+function setBehaviorStatus(message, label, className) {
   if (behaviorStatus) behaviorStatus.textContent = message;
+  if (behaviorBadge) {
+    behaviorBadge.textContent = label;
+    behaviorBadge.className = "status-pill " + className;
+  }
 }
 
 function setAIButtonsEnabled(enabled) {
   if (analyzeOnceButton) analyzeOnceButton.disabled = !enabled;
   if (startAIButton) startAIButton.disabled = !enabled;
-}
-
-function clearOverlay() {
-  if (!overlay) return;
-  const ctx = overlay.getContext("2d");
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
 }
 
 function resizeOverlay() {
@@ -67,7 +71,32 @@ function resizeOverlay() {
   overlay.height = video.clientHeight;
 }
 
-function drawFaceBoxes(recognitions) {
+function clearOverlay() {
+  if (!overlay) return;
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function drawBox(ctx, box, label, color, scaleX, scaleY, lineWidth) {
+  const x = box.x * scaleX;
+  const y = box.y * scaleY;
+  const w = box.w * scaleX;
+  const h = box.h * scaleY;
+
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.strokeRect(x, y, w, h);
+
+  ctx.font = "16px Arial";
+  const textWidth = ctx.measureText(label).width + 16;
+  ctx.fillRect(x, Math.max(0, y - 28), textWidth, 26);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(label, x + 8, Math.max(18, y - 9));
+}
+
+function drawDetections(recognitions, behavior) {
   if (!overlay || !video) return;
 
   resizeOverlay();
@@ -77,30 +106,20 @@ function drawFaceBoxes(recognitions) {
   const scaleX = overlay.width / lastCaptureWidth;
   const scaleY = overlay.height / lastCaptureHeight;
 
+  const persons = behavior?.person_candidates || [];
+  persons.forEach((box, index) => {
+    drawBox(ctx, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 2);
+  });
+
   recognitions.forEach((item) => {
     if (!item.box) return;
-
-    const x = item.box.x * scaleX;
-    const y = item.box.y * scaleY;
-    const w = item.box.w * scaleX;
-    const h = item.box.h * scaleY;
 
     const label = item.recognized
       ? `${item.student_code} ${item.confidence}%`
       : `Unknown ${item.confidence}%`;
 
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = item.recognized ? "#10b981" : "#f59e0b";
-    ctx.fillStyle = item.recognized ? "#10b981" : "#f59e0b";
-
-    ctx.strokeRect(x, y, w, h);
-
-    ctx.font = "16px Arial";
-    const textWidth = ctx.measureText(label).width + 16;
-    ctx.fillRect(x, Math.max(0, y - 28), textWidth, 26);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(label, x + 8, Math.max(18, y - 9));
+    const color = item.recognized ? "#10b981" : "#f59e0b";
+    drawBox(ctx, item.box, label, color, scaleX, scaleY, 4);
   });
 }
 
@@ -118,14 +137,31 @@ function captureFrameAsDataUrl() {
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
-function renderRecognitionResult(result) {
-  if (!recognitionList) return;
+function updateBehaviorUI(behavior) {
+  if (!behavior) return;
 
+  if (personCountText) personCountText.textContent = behavior.person_count ?? 0;
+  if (phoneCountText) phoneCountText.textContent = behavior.phone_candidates ?? 0;
+  if (lookingAwayText) lookingAwayText.textContent = behavior.looking_away_candidates ?? 0;
+  if (headDownText) headDownText.textContent = behavior.head_down_candidates ?? 0;
+
+  setBehaviorStatus(
+    behavior.summary || "Behavior frame analyzed.",
+    "Behavior Running",
+    "status-success"
+  );
+}
+
+function renderRecognitionResult(result) {
   const recognition = result.recognition || {};
   const recognitions = recognition.recognitions || [];
   const attendanceResults = result.attendance_results || [];
+  const behavior = result.behavior || {};
 
-  drawFaceBoxes(recognitions);
+  drawDetections(recognitions, behavior);
+  updateBehaviorUI(behavior);
+
+  if (!recognitionList) return;
 
   if (!result.ok) {
     recognitionList.innerHTML = `<div class="note-box status-danger">${escapeHtml(result.message)}</div>`;
@@ -203,7 +239,13 @@ async function analyzeFrame() {
     }
 
     const recognizedCount = result.recognition?.recognized_count || 0;
-    setFaceAIStatus(`Frame analyzed. Recognized: ${recognizedCount}`, "AI Running", "status-success");
+    const personCount = result.behavior?.person_count || 0;
+
+    setFaceAIStatus(
+      `Recognized: ${recognizedCount}, Persons: ${personCount}`,
+      "AI Running",
+      "status-success"
+    );
   } catch (error) {
     console.error("AI analysis failed:", error);
     setFaceAIStatus("AI analysis failed: " + (error.message || error.name), "Error", "status-danger");
@@ -219,7 +261,7 @@ function startAIAnalysis() {
   if (startAIButton) startAIButton.disabled = true;
   if (stopAIButton) stopAIButton.disabled = false;
 
-  setFaceAIStatus("AI attendance is running every 2 seconds.", "AI Running", "status-success");
+  setFaceAIStatus("AI attendance and behavior monitoring are running.", "AI Running", "status-success");
 }
 
 function stopAIAnalysis() {
@@ -231,7 +273,7 @@ function stopAIAnalysis() {
   if (startAIButton) startAIButton.disabled = false;
   if (stopAIButton) stopAIButton.disabled = true;
 
-  setFaceAIStatus("AI attendance stopped.", "Stopped", "status-muted");
+  setFaceAIStatus("AI analysis stopped.", "Stopped", "status-muted");
 }
 
 if (startButton && stopButton && video) {
@@ -258,16 +300,15 @@ if (startButton && stopButton && video) {
       if (cameraFrame) cameraFrame.classList.add("camera-active");
 
       setCameraStatus("Camera is running from this computer.", "Running", "status-success");
-      setBehaviorMessage("Camera is ready. Face attendance AI can analyze frames now.");
-
-      if (behaviorBadge) {
-        behaviorBadge.textContent = "Waiting for Behavior AI";
-        behaviorBadge.className = "status-pill status-info";
-      }
+      setBehaviorStatus(
+        "Camera is ready. AI can analyze attendance and behavior candidates now.",
+        "Ready",
+        "status-info"
+      );
     } catch (error) {
       console.error("Camera start failed:", error);
       setCameraStatus("Camera failed: " + (error.name || error.message), "Error", "status-danger");
-      setBehaviorMessage("Camera failed, so AI cannot analyze frames yet.");
+      setBehaviorStatus("Camera failed, so AI cannot analyze frames yet.", "Error", "status-danger");
     }
   });
 
@@ -288,12 +329,7 @@ if (startButton && stopButton && video) {
     if (cameraFrame) cameraFrame.classList.remove("camera-active");
 
     setCameraStatus("Camera stopped. Click Start Camera.", "Stopped", "status-muted");
-    setBehaviorMessage("Behavior AI is not connected yet. Face attendance is the current stage.");
-
-    if (behaviorBadge) {
-      behaviorBadge.textContent = "AI Not Started";
-      behaviorBadge.className = "status-pill status-warning";
-    }
+    setBehaviorStatus("Behavior AI stopped.", "AI Not Started", "status-warning");
   });
 }
 

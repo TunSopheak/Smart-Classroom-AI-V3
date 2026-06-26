@@ -30,8 +30,24 @@ def analyze_frame_for_face_attendance(
     db: Session = Depends(get_db),
 ):
     try:
-        result = face_attendance_service.analyze_frame_for_attendance(db, image_data)
+        face_result = face_attendance_service.analyze_frame_for_attendance(db, image_data)
+        behavior_result = behavior_service.analyze_behavior_frame(image_data)
+
+        result = {
+            "ok": True,
+            "message": "Frame analyzed successfully.",
+            "face_attendance": face_result,
+            "recognition": face_result.get("recognition", {}),
+            "attendance_results": face_result.get("attendance_results", []),
+            "behavior": behavior_result,
+        }
+
+        if not face_result.get("ok"):
+            result["ok"] = False
+            result["message"] = face_result.get("message", "Face attendance analysis failed.")
+
         return JSONResponse(content=jsonable_encoder(result), status_code=200)
+
     except Exception as exc:
         return JSONResponse(
             content=jsonable_encoder(
@@ -44,6 +60,7 @@ def analyze_frame_for_face_attendance(
                         "recognized_count": 0,
                     },
                     "attendance_results": [],
+                    "behavior": behavior_service.placeholder_behavior_summary(),
                 }
             ),
             status_code=500,
