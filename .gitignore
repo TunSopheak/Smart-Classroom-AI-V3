@@ -1,0 +1,17 @@
+.venv/
+.venv-1/
+__pycache__/
+*.pyc
+
+*.db
+*.sqlite3
+*.log
+
+models/face_dataset/
+models/face_model.yml
+models/face_labels.json
+
+app/static/uploads/
+reports/
+
+.env
