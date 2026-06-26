@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Students</h1>
+
+<form method="post" class="form-row">
+  <input name="student_code" placeholder="STU0006" required>
+  <input name="first_name" placeholder="First name" required>
+  <input name="last_name" placeholder="Last name" required>
+  <button>Add Student</button>
+</form>
+
+<table>
+  <tr><th>Code</th><th>Name</th><th>Status</th></tr>
+  {% for s in students %}
+  <tr>
+    <td>{{ s.student_code }}</td>
+    <td>{{ s.full_name }}</td>
+    <td>{{ s.status }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

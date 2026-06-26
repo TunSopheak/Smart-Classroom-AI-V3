@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>AI Monitoring</h1>
+    <p class="muted">Computer camera preview now. Face recognition and behavior AI will be connected in the next stages.</p>
+  </div>
+  <span class="status-pill status-info">Stage 1 Camera Preview</span>
+</div>
+
+<section class="cards">
+  <div class="card"><span>Total Students</span><strong>{{ summary.total_students }}</strong></div>
+  <div class="card"><span>Present</span><strong>{{ summary.present }}</strong></div>
+  <div class="card"><span>Late</span><strong>{{ summary.late }}</strong></div>
+  <div class="card"><span>Absent</span><strong>{{ summary.absent }}</strong></div>
+</section>
+
+<section class="grid">
+  <div class="panel camera-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Computer Camera</h2>
+        <p id="camera-status" class="muted">Camera stopped. Click Start Camera.</p>
+      </div>
+      <span id="camera-badge" class="status-pill status-muted">Stopped</span>
+    </div>
+
+    <div id="camera-frame" class="camera-frame">
+      <video id="camera-preview" autoplay muted playsinline></video>
+    </div>
+
+    <div class="button-row">
+      <button id="start-camera">Start Camera</button>
+      <button id="stop-camera" disabled>Stop Camera</button>
+    </div>
+
+    <div class="note-box">
+      <strong>Demo note:</strong>
+      Camera preview is working. Real face recognition attendance will be added after AI Training Center.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Behavior Monitoring</h2>
+        <p class="muted">Candidate review only, not final student judgment.</p>
+      </div>
+      <span id="behavior-badge" class="status-pill status-warning">AI Not Started</span>
+    </div>
+
+    <div class="behavior-list">
+      <div><span>Person Count</span><strong>{{ behavior.person_count }}</strong></div>
+      <div><span>Phone-use Candidates</span><strong>{{ behavior.phone_candidates }}</strong></div>
+      <div><span>Looking-away Candidates</span><strong>{{ behavior.looking_away_candidates }}</strong></div>
+      <div><span>Head-down Candidates</span><strong>{{ behavior.head_down_candidates }}</strong></div>
+    </div>
+
+    <div id="behavior-system-status" class="note-box">
+      Behavior AI is not connected yet. Stage 2/5 will analyze camera frames.
+    </div>
+  </div>
+</section>
+
+<h2>Recent Recognitions</h2>
+<table>
+  <tr><th>Student</th><th>Status</th><th>Method</th><th>Time</th></tr>
+  {% for r in recent %}
+  <tr>
+    <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
+    <td><span class="status-pill status-warning">{{ r.status }}</span></td>
+    <td>{{ r.method }}</td>
+    <td>{{ r.first_seen_time or "-" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<script src="/static/js/camera.js"></script>
+{% endblock %}

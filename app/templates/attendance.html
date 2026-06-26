@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Attendance</h1>
+
+<section class="cards">
+  <div class="card"><span>Total</span><strong>{{ summary.total_students }}</strong></div>
+  <div class="card"><span>Present</span><strong>{{ summary.present }}</strong></div>
+  <div class="card"><span>Late</span><strong>{{ summary.late }}</strong></div>
+  <div class="card"><span>Absent</span><strong>{{ summary.absent }}</strong></div>
+</section>
+
+<h2>Demo Face Attendance</h2>
+<p class="muted">Stage 1 test only. Later this will come from real face recognition.</p>
+<form method="post" action="/attendance/demo-face" class="form-row">
+  <input name="student_code" value="STU0001" required>
+  <input name="confidence" value="88" type="number" step="0.1">
+  <button>Simulate Recognized Face</button>
+</form>
+
+<h2>Records</h2>
+<table>
+  <tr><th>Student</th><th>Status</th><th>Method</th><th>Confidence</th><th>First Seen</th></tr>
+  {% for r in records %}
+  <tr>
+    <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
+    <td>{{ r.status }}</td>
+    <td>{{ r.method }}</td>
+    <td>{{ r.confidence or "-" }}</td>
+    <td>{{ r.first_seen_time or "-" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

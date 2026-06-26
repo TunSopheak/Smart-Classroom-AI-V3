@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sessions</h1>
+
+<table>
+  <tr><th>Title</th><th>Class</th><th>Subject</th><th>Room</th><th>Time</th><th>Status</th><th>Action</th></tr>
+  {% for s in sessions %}
+  <tr>
+    <td>{{ s.title }}</td>
+    <td>{{ s.class_name }}</td>
+    <td>{{ s.subject }}</td>
+    <td>{{ s.room }}</td>
+    <td>{{ s.start_time }} - {{ s.close_time }}</td>
+    <td>{{ "Active" if s.is_active else "Closed" }}</td>
+    <td>
+      <form method="post" action="/sessions/{{ s.id }}/start" class="inline"><button>Start</button></form>
+      <form method="post" action="/sessions/{{ s.id }}/close" class="inline"><button>Close + Mark Absent</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

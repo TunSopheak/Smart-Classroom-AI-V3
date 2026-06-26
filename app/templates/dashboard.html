@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="muted">Clean V3 demo: AI Attendance + Behavior Monitoring.</p>
+
+<section class="cards">
+  <div class="card"><span>Total Students</span><strong>{{ summary.total_students }}</strong></div>
+  <div class="card"><span>Present</span><strong>{{ summary.present }}</strong></div>
+  <div class="card"><span>Late</span><strong>{{ summary.late }}</strong></div>
+  <div class="card"><span>Absent</span><strong>{{ summary.absent }}</strong></div>
+</section>
+
+<h2>Active Session</h2>
+{% if summary.session %}
+<div class="panel">
+  <strong>{{ summary.session.title }}</strong>
+  <p>{{ summary.session.class_name }} | {{ summary.session.subject }} | {{ summary.session.room }}</p>
+  <p>{{ summary.session.start_time }} - {{ summary.session.close_time }}</p>
+</div>
+{% else %}
+<p>No active session.</p>
+{% endif %}
+
+<h2>Recent Attendance</h2>
+<table>
+  <tr><th>Student</th><th>Status</th><th>Method</th><th>Time</th></tr>
+  {% for r in recent %}
+  <tr>
+    <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
+    <td>{{ r.status }}</td>
+    <td>{{ r.method }}</td>
+    <td>{{ r.first_seen_time or "-" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
