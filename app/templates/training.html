@@ -1,11 +1,87 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<h1>AI Training Center</h1>
-<p class="muted">Coming in Stage 3.</p>
+<div class="page-header">
+  <div>
+    <h1>AI Training Center</h1>
+    <p class="muted">Capture student face datasets and train the LBPH face recognition model.</p>
+  </div>
 
-<div class="panel">
-  <h2>Face Dataset Format</h2>
-  <code>models/face_dataset/STU0001_TunSopheak/01.jpg</code>
-  <p>Student code before underscore must match the database student code.</p>
+  {% if training_status.trained %}
+    <span class="status-pill status-success">Model Trained</span>
+  {% else %}
+    <span class="status-pill status-warning">Model Not Trained</span>
+  {% endif %}
 </div>
+
+<section class="grid">
+  <div class="panel camera-panel">
+    <div class="panel-header">
+      <div>
+        <h2>Face Dataset Capture</h2>
+        <p id="camera-status" class="muted">Camera stopped. Select a student and start camera.</p>
+      </div>
+      <span id="camera-badge" class="status-pill status-muted">Stopped</span>
+    </div>
+
+    <label class="label">Select Student</label>
+    <select id="student-code" class="select-input">
+      {% for student in students %}
+      <option value="{{ student.student_code }}">
+        {{ student.student_code }} - {{ student.full_name }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <div id="camera-frame" class="camera-frame training-camera-frame">
+      <video id="camera-preview" autoplay muted playsinline></video>
+    </div>
+
+    <div class="button-row">
+      <button id="start-camera">Start Camera</button>
+      <button id="stop-camera" disabled>Stop Camera</button>
+      <button id="capture-face" disabled>Capture Face Image</button>
+    </div>
+
+    <div id="training-message" class="note-box">
+      Tip: Face the camera clearly. Capture 10 to 20 images per student.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>Model Training</h2>
+        <p class="muted">Train after capturing student face images.</p>
+      </div>
+      <span id="model-badge" class="status-pill {% if training_status.trained %}status-success{% else %}status-warning{% endif %}">
+        {% if training_status.trained %}Trained{% else %}Not Trained{% endif %}
+      </span>
+    </div>
+
+    <div class="behavior-list">
+      <div><span>Total Dataset Images</span><strong id="total-images">{{ training_status.total_dataset_images }}</strong></div>
+      <div><span>Students in Dataset</span><strong>{{ training_status.student_counts|length }}</strong></div>
+    </div>
+
+    <button id="train-model" class="full-button">Train or Retrain Face Model</button>
+
+    <div id="model-message" class="note-box">
+      Model output: models/face_model.yml and models/face_labels.json
+    </div>
+  </div>
+</section>
+
+<h2>Dataset Counts</h2>
+<table>
+  <tr><th>Student</th><th>Images</th><th>Dataset Folder</th></tr>
+  {% for item in training_status.students %}
+  <tr>
+    <td>{{ item.student_code }} - {{ item.student_name }}</td>
+    <td><span class="status-pill status-info">{{ item.image_count }}</span></td>
+    <td><code>{{ item.folder }}</code></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<script src="/static/js/training.js"></script>
 {% endblock %}

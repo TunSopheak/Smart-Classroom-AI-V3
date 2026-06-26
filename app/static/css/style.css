@@ -228,3 +228,29 @@ th, td {
 .behavior-list strong {
   font-size: 22px;
 }
+
+.label {
+  display: block;
+  margin: 12px 0 8px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.select-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  background: white;
+  font-size: 15px;
+}
+
+.full-button {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.training-camera-frame {
+  margin-top: 12px;
+}
