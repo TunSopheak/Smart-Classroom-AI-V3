@@ -9,6 +9,7 @@ from app.routers import (
     academics,
     ai_monitoring,
     attendance,
+    behavior_reports,
     camera,
     dashboard,
     sessions,
@@ -36,6 +37,7 @@ app = FastAPI(title="Smart Classroom AI V3", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 Path("media/recordings").mkdir(parents=True, exist_ok=True)
+Path("media/snapshots").mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
 app.include_router(dashboard.router)
@@ -43,6 +45,7 @@ app.include_router(academics.router)
 app.include_router(students.router)
 app.include_router(sessions.router)
 app.include_router(attendance.router)
+app.include_router(behavior_reports.router)
 app.include_router(training.router)
 app.include_router(ai_monitoring.router)
 app.include_router(camera.router)

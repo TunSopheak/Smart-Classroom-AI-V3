@@ -479,3 +479,80 @@ body {
   min-width: 82px;
   text-align: center;
 }
+/* ================================
+   Stage 11 Behavior Reports + Alert Colors
+================================ */
+
+.alert-legend-box {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.legend-dot.red {
+  background: #ef4444;
+}
+
+.legend-dot.amber {
+  background: #f59e0b;
+}
+
+.legend-dot.yellow {
+  background: #fbbf24;
+}
+
+.behavior-report-list {
+  display: grid;
+  gap: 14px;
+}
+
+.behavior-report-card {
+  border: 1px solid var(--sc-border, #dbe4ef);
+  border-radius: 18px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.behavior-report-card.alert {
+  border-color: rgba(239, 68, 68, 0.36);
+  background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+}
+
+.behavior-report-card.warning {
+  border-color: rgba(245, 158, 11, 0.36);
+  background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.behavior-report-main h3 {
+  margin: 12px 0 6px;
+  font-size: 18px;
+}
+
+.snapshot-preview {
+  margin-top: 14px;
+  border-top: 1px solid var(--sc-border, #dbe4ef);
+  padding-top: 12px;
+}
+
+.snapshot-preview summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #115e59;
+  margin-bottom: 10px;
+}
+
+.snapshot-preview img {
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  border-radius: 14px;
+  border: 1px solid var(--sc-border, #dbe4ef);
+  background: #020617;
+}
+
+@media (max-width: 700px) {
+  .alert-legend-box {
+    grid-template-columns: 1fr;
+  }
+}

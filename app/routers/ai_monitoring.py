@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.ai import face_training
 from app.core.database import get_db
-from app.services import attendance_service, behavior_service, face_attendance_service
+from app.services import (
+    attendance_service,
+    behavior_report_service,
+    behavior_service,
+    face_attendance_service,
+)
 
 router = APIRouter(prefix="/ai-monitoring", tags=["ai-monitoring"])
 templates = Jinja2Templates(directory="app/templates")
@@ -33,6 +38,16 @@ def analyze_frame_for_face_attendance(
         face_result = face_attendance_service.analyze_frame_for_attendance(db, image_data)
         behavior_result = behavior_service.analyze_behavior_frame(image_data)
 
+        alert_events = []
+
+        if face_result.get("ok"):
+            alert_events = behavior_report_service.create_alert_events_from_frame(
+                db=db,
+                image_data=image_data,
+                recognition_result=face_result.get("recognition", {}),
+                behavior_result=behavior_result,
+            )
+
         result = {
             "ok": True,
             "message": "Frame analyzed successfully.",
@@ -40,6 +55,7 @@ def analyze_frame_for_face_attendance(
             "recognition": face_result.get("recognition", {}),
             "attendance_results": face_result.get("attendance_results", []),
             "behavior": behavior_result,
+            "behavior_alerts": alert_events,
         }
 
         if not face_result.get("ok"):
@@ -61,6 +77,7 @@ def analyze_frame_for_face_attendance(
                     },
                     "attendance_results": [],
                     "behavior": behavior_service.placeholder_behavior_summary(),
+                    "behavior_alerts": [],
                 }
             ),
             status_code=500,

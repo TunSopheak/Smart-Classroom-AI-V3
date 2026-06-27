@@ -1,0 +1,94 @@
+﻿{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Behavior Reports</h1>
+    <p>Review AI behavior alert candidates with saved snapshots. These reports support teacher review only, not final student judgment.</p>
+  </div>
+
+  <div class="page-actions">
+    <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+  </div>
+</div>
+
+<section class="cards">
+  <div class="card">
+    <span>Total Events</span>
+    <strong>{{ summary.total }}</strong>
+    <small>Behavior records</small>
+  </div>
+  <div class="card">
+    <span>Alerts</span>
+    <strong>{{ summary.alerts }}</strong>
+    <small>Need teacher review</small>
+  </div>
+  <div class="card">
+    <span>Warnings</span>
+    <strong>{{ summary.warnings }}</strong>
+    <small>Object/focus candidates</small>
+  </div>
+  <div class="card">
+    <span>Evidence</span>
+    <strong>Snapshot</strong>
+    <small>Saved by session</small>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Teacher Review</span>
+      <h2>Alert Snapshot Report</h2>
+    </div>
+  </div>
+
+  {% if events %}
+    <div class="behavior-report-list">
+      {% for event in events %}
+        <article class="behavior-report-card {{ event.severity }}">
+          <div class="behavior-report-main">
+            <div>
+              {% if event.severity == "alert" %}
+                <span class="status-pill status-danger">Alert</span>
+              {% elif event.severity == "warning" %}
+                <span class="status-pill status-warning">Warning</span>
+              {% else %}
+                <span class="status-pill status-info">Info</span>
+              {% endif %}
+
+              <h3>{{ event.message }}</h3>
+
+              <div class="evidence-meta-row">
+                <span>Type: <strong>{{ event.event_type }}</strong></span>
+                <span>Confidence: <strong>{{ event.confidence or "-" }}</strong></span>
+                <span>Session ID: <strong>{{ event.session_id or "-" }}</strong></span>
+                <span>Time: <strong>{{ event.detected_at }}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {% if event.snapshot_path %}
+            <details class="snapshot-preview" open>
+              <summary>View snapshot evidence</summary>
+              <img src="{{ event.snapshot_path }}" alt="Behavior alert snapshot">
+            </details>
+          {% else %}
+            <div class="empty-state">
+              <strong>No snapshot saved</strong>
+              <p>This event has no image evidence.</p>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No behavior alerts yet</strong>
+      <p>Open AI Monitoring. When a phone-use candidate is detected, the system saves a snapshot report here.</p>
+      <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+    </div>
+  {% endif %}
+</section>
+
+{% endblock %}

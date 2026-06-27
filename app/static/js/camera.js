@@ -931,3 +931,540 @@ async function saveVideoRecording() {
   }
 }
 
+
+// ================================
+// Stage 11 Behavior Alert Color Boxes
+// Final override: red alert, amber warning, green normal, yellow unknown
+// ================================
+
+function boxCenterForAlert(box) {
+  return {
+    x: (box?.x || 0) + (box?.w || 0) / 2,
+    y: (box?.y || 0) + (box?.h || 0) / 2,
+  };
+}
+
+function pointInsideBoxForAlert(point, box) {
+  if (!point || !box) return false;
+  return (
+    point.x >= box.x &&
+    point.x <= box.x + box.w &&
+    point.y >= box.y &&
+    point.y <= box.y + box.h
+  );
+}
+
+function alertForRecognition(item, behavior) {
+  const alerts = behavior?.alert_candidates || [];
+  if (!item?.box) return null;
+
+  const center = boxCenterForAlert(item.box);
+
+  return alerts.find((alert) => {
+    if (alert.student_code && item.student_code && alert.student_code === item.student_code) {
+      return true;
+    }
+    return pointInsideBoxForAlert(center, alert.box);
+  });
+}
+
+function updateBehaviorUI(behavior) {
+  if (!behavior) return;
+
+  const alertCount = (behavior.alert_candidates || []).length;
+  const warningCount = (behavior.warning_candidates || []).length;
+
+  if (personCountText) personCountText.textContent = behavior.person_count ?? 0;
+  if (phoneCountText) phoneCountText.textContent = behavior.phone_candidates ?? 0;
+  if (lookingAwayText) lookingAwayText.textContent = behavior.looking_away_candidates ?? 0;
+  if (headDownText) headDownText.textContent = behavior.head_down_candidates ?? 0;
+
+  let message = behavior.summary || "Behavior frame analyzed.";
+  let label = "Behavior Running";
+  let className = "status-success";
+
+  if (alertCount > 0) {
+    message = `${message}. ${alertCount} alert candidate(s) saved to Behavior Reports with snapshot.`;
+    label = "Alert";
+    className = "status-danger";
+  } else if (warningCount > 0) {
+    message = `${message}. ${warningCount} warning candidate(s) found.`;
+    label = "Warning";
+    className = "status-warning";
+  }
+
+  setBehaviorStatus(message, label, className);
+}
+
+function drawDetections(recognitions, behavior) {
+  latestRecognitionsForEvidence = Array.isArray(recognitions) ? recognitions : [];
+  latestBehaviorForEvidence = behavior || {};
+
+  if (!overlay || !video) return;
+
+  resizeOverlay();
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  const scaleX = overlay.width / lastCaptureWidth;
+  const scaleY = overlay.height / lastCaptureHeight;
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  persons.forEach((box, index) => {
+    drawBox(ctx, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 2);
+  });
+
+  const warnings = latestBehaviorForEvidence?.warning_candidates || [];
+  warnings.forEach((item) => {
+    if (!item.box) return;
+    drawBox(ctx, item.box, item.label || "Warning", "#f59e0b", scaleX, scaleY, 3);
+  });
+
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  alerts.forEach((item) => {
+    if (!item.box) return;
+    const alertName = item.student_name || "Student";
+    drawBox(ctx, item.box, `${alertName} | ${item.label || "Alert"}`, "#ef4444", scaleX, scaleY, 5);
+  });
+
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+  phoneBoxes.forEach((box) => {
+    drawBox(ctx, box, "Phone/Object", "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown ${item.confidence}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (alert) {
+      label = `${displayName} | ${alert.label || "Alert"}`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawBox(ctx, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+}
+
+function drawEvidenceFrame() {
+  if (!cameraStream || !video) return;
+
+  const width = video.videoWidth || lastCaptureWidth || 640;
+  const height = video.videoHeight || lastCaptureHeight || 480;
+
+  if (!evidenceCanvas) {
+    evidenceCanvas = document.createElement("canvas");
+    evidenceContext = evidenceCanvas.getContext("2d");
+  }
+
+  if (evidenceCanvas.width !== width || evidenceCanvas.height !== height) {
+    evidenceCanvas.width = width;
+    evidenceCanvas.height = height;
+  }
+
+  evidenceContext.clearRect(0, 0, width, height);
+  evidenceContext.drawImage(video, 0, 0, width, height);
+
+  const scaleX = width / (lastCaptureWidth || width);
+  const scaleY = height / (lastCaptureHeight || height);
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  persons.forEach((box, index) => {
+    drawEvidenceBox(evidenceContext, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 3);
+  });
+
+  const warnings = latestBehaviorForEvidence?.warning_candidates || [];
+  warnings.forEach((item) => {
+    if (!item.box) return;
+    drawEvidenceBox(evidenceContext, item.box, item.label || "Warning", "#f59e0b", scaleX, scaleY, 3);
+  });
+
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  alerts.forEach((item) => {
+    if (!item.box) return;
+    const alertName = item.student_name || "Student";
+    drawEvidenceBox(evidenceContext, item.box, `${alertName} | ${item.label || "Alert"}`, "#ef4444", scaleX, scaleY, 6);
+  });
+
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+  phoneBoxes.forEach((box) => {
+    drawEvidenceBox(evidenceContext, box, "Phone/Object", "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown ${item.confidence}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (alert) {
+      label = `${displayName} | ${alert.label || "Alert"}`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawEvidenceBox(evidenceContext, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+
+  if (latestRecognitionsForEvidence.length === 0 && persons.length === 0) {
+    evidenceContext.fillStyle = "rgba(245, 158, 11, 0.92)";
+    evidenceContext.fillRect(14, 66, 420, 34);
+    evidenceContext.fillStyle = "#111827";
+    evidenceContext.font = "15px Arial";
+    evidenceContext.fillText("No AI boxes yet ? keep AI Monitoring running.", 28, 88);
+  }
+
+  drawEvidenceHeader(evidenceContext, width, height);
+
+  evidenceAnimationFrame = requestAnimationFrame(drawEvidenceFrame);
+}
+
+
+// ================================
+// Stage 11.4 Accuracy Tuning Drawing Override
+// Cleaner labels + safer low-confidence display
+// ================================
+
+function drawDetections(recognitions, behavior) {
+  latestRecognitionsForEvidence = Array.isArray(recognitions) ? recognitions : [];
+  latestBehaviorForEvidence = behavior || {};
+
+  if (!overlay || !video) return;
+
+  resizeOverlay();
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  const scaleX = overlay.width / lastCaptureWidth;
+  const scaleY = overlay.height / lastCaptureHeight;
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  const warnings = latestBehaviorForEvidence?.warning_candidates || [];
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+
+  persons.forEach((box, index) => {
+    const hasAlert = alerts.some((alert) => alert.box && pointInsideBoxForAlert(boxCenterForAlert(box), alert.box));
+    if (!hasAlert) {
+      drawBox(ctx, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 2);
+    }
+  });
+
+  warnings.forEach((item) => {
+    if (!item.box) return;
+    drawBox(ctx, item.box, item.label || "Warning", "#f59e0b", scaleX, scaleY, 3);
+  });
+
+  // Draw only object box for phone candidate. Student red box is drawn by recognition if matched.
+  phoneBoxes.forEach((box) => {
+    drawBox(ctx, box, "Phone/Object Candidate", "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown ${item.confidence || ""}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (item.low_confidence && item.predicted_student_code && !item.recognized) {
+      label = `Low confidence face ${item.confidence}%`;
+      color = "#f59e0b";
+      lineWidth = 3;
+    }
+
+    if (alert && item.recognized) {
+      label = `${displayName} | ${alert.label || "Alert"}`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawBox(ctx, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+
+  // If alert cannot match a recognized student, show generic red person alert.
+  alerts.forEach((alert) => {
+    const matched = latestRecognitionsForEvidence.some((item) => item.recognized && alertForRecognition(item, latestBehaviorForEvidence));
+    if (!matched && alert.box) {
+      drawBox(ctx, alert.box, alert.label || "Alert Candidate", "#ef4444", scaleX, scaleY, 5);
+    }
+  });
+}
+
+function drawEvidenceFrame() {
+  if (!cameraStream || !video) return;
+
+  const width = video.videoWidth || lastCaptureWidth || 640;
+  const height = video.videoHeight || lastCaptureHeight || 480;
+
+  if (!evidenceCanvas) {
+    evidenceCanvas = document.createElement("canvas");
+    evidenceContext = evidenceCanvas.getContext("2d");
+  }
+
+  if (evidenceCanvas.width !== width || evidenceCanvas.height !== height) {
+    evidenceCanvas.width = width;
+    evidenceCanvas.height = height;
+  }
+
+  evidenceContext.clearRect(0, 0, width, height);
+  evidenceContext.drawImage(video, 0, 0, width, height);
+
+  const scaleX = width / (lastCaptureWidth || width);
+  const scaleY = height / (lastCaptureHeight || height);
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  const warnings = latestBehaviorForEvidence?.warning_candidates || [];
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+
+  persons.forEach((box, index) => {
+    const hasAlert = alerts.some((alert) => alert.box && pointInsideBoxForAlert(boxCenterForAlert(box), alert.box));
+    if (!hasAlert) {
+      drawEvidenceBox(evidenceContext, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 3);
+    }
+  });
+
+  warnings.forEach((item) => {
+    if (!item.box) return;
+    drawEvidenceBox(evidenceContext, item.box, item.label || "Warning", "#f59e0b", scaleX, scaleY, 3);
+  });
+
+  phoneBoxes.forEach((box) => {
+    drawEvidenceBox(evidenceContext, box, "Phone/Object Candidate", "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown ${item.confidence || ""}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (item.low_confidence && item.predicted_student_code && !item.recognized) {
+      label = `Low confidence face ${item.confidence}%`;
+      color = "#f59e0b";
+      lineWidth = 3;
+    }
+
+    if (alert && item.recognized) {
+      label = `${displayName} | ${alert.label || "Alert"}`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawEvidenceBox(evidenceContext, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+
+  alerts.forEach((alert) => {
+    const matched = latestRecognitionsForEvidence.some((item) => item.recognized && alertForRecognition(item, latestBehaviorForEvidence));
+    if (!matched && alert.box) {
+      drawEvidenceBox(evidenceContext, alert.box, alert.label || "Alert Candidate", "#ef4444", scaleX, scaleY, 5);
+    }
+  });
+
+  if (latestRecognitionsForEvidence.length === 0 && persons.length === 0) {
+    evidenceContext.fillStyle = "rgba(245, 158, 11, 0.92)";
+    evidenceContext.fillRect(14, 66, 420, 34);
+    evidenceContext.fillStyle = "#111827";
+    evidenceContext.font = "15px Arial";
+    evidenceContext.fillText("No AI boxes yet ? keep AI Monitoring running.", 28, 88);
+  }
+
+  drawEvidenceHeader(evidenceContext, width, height);
+
+  evidenceAnimationFrame = requestAnimationFrame(drawEvidenceFrame);
+}
+
+
+// ================================
+// Stage 11.5 Final Accuracy Drawing Override
+// Hide weak unknown noise + clean phone alert label
+// ================================
+
+function drawDetections(recognitions, behavior) {
+  latestRecognitionsForEvidence = Array.isArray(recognitions) ? recognitions : [];
+  latestBehaviorForEvidence = behavior || {};
+
+  if (!overlay || !video) return;
+
+  resizeOverlay();
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  const scaleX = overlay.width / lastCaptureWidth;
+  const scaleY = overlay.height / lastCaptureHeight;
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+
+  persons.forEach((box, index) => {
+    const hasAlert = alerts.some((alert) => alert.box && pointInsideBoxForAlert(boxCenterForAlert(box), alert.box));
+    if (!hasAlert) {
+      drawBox(ctx, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 2);
+    }
+  });
+
+  phoneBoxes.forEach((box) => {
+    drawBox(ctx, box, `Phone Candidate ${box.confidence || ""}%`, "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    // Hide very weak unknown face noise.
+    if (!item.recognized && (item.confidence || 0) < 42) {
+      return;
+    }
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown Face ${item.confidence || ""}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (item.low_confidence && item.predicted_student_code && !item.recognized) {
+      label = `Low Confidence ${item.confidence}%`;
+      color = "#f59e0b";
+      lineWidth = 3;
+    }
+
+    if (alert && item.recognized) {
+      label = `${displayName} | Phone-use Alert`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawBox(ctx, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+
+  alerts.forEach((alert) => {
+    const matched = latestRecognitionsForEvidence.some((item) => item.recognized && alertForRecognition(item, latestBehaviorForEvidence));
+    if (!matched && alert.box) {
+      drawBox(ctx, alert.box, "Phone-use Alert", "#ef4444", scaleX, scaleY, 5);
+    }
+  });
+}
+
+function drawEvidenceFrame() {
+  if (!cameraStream || !video) return;
+
+  const width = video.videoWidth || lastCaptureWidth || 640;
+  const height = video.videoHeight || lastCaptureHeight || 480;
+
+  if (!evidenceCanvas) {
+    evidenceCanvas = document.createElement("canvas");
+    evidenceContext = evidenceCanvas.getContext("2d");
+  }
+
+  if (evidenceCanvas.width !== width || evidenceCanvas.height !== height) {
+    evidenceCanvas.width = width;
+    evidenceCanvas.height = height;
+  }
+
+  evidenceContext.clearRect(0, 0, width, height);
+  evidenceContext.drawImage(video, 0, 0, width, height);
+
+  const scaleX = width / (lastCaptureWidth || width);
+  const scaleY = height / (lastCaptureHeight || height);
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  const alerts = latestBehaviorForEvidence?.alert_candidates || [];
+  const phoneBoxes = latestBehaviorForEvidence?.phone_candidate_boxes || [];
+
+  persons.forEach((box, index) => {
+    const hasAlert = alerts.some((alert) => alert.box && pointInsideBoxForAlert(boxCenterForAlert(box), alert.box));
+    if (!hasAlert) {
+      drawEvidenceBox(evidenceContext, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 3);
+    }
+  });
+
+  phoneBoxes.forEach((box) => {
+    drawEvidenceBox(evidenceContext, box, `Phone Candidate ${box.confidence || ""}%`, "#ef4444", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    if (!item.recognized && (item.confidence || 0) < 42) {
+      return;
+    }
+
+    const alert = alertForRecognition(item, latestBehaviorForEvidence);
+    const displayName = item.student_display_name || item.student_name || item.student_code || "Unknown";
+
+    let label = item.recognized
+      ? `${displayName} ${item.confidence}%`
+      : `Unknown Face ${item.confidence || ""}%`;
+
+    let color = item.recognized ? "#10b981" : "#f59e0b";
+    let lineWidth = item.recognized ? 4 : 3;
+
+    if (item.low_confidence && item.predicted_student_code && !item.recognized) {
+      label = `Low Confidence ${item.confidence}%`;
+      color = "#f59e0b";
+      lineWidth = 3;
+    }
+
+    if (alert && item.recognized) {
+      label = `${displayName} | Phone-use Alert`;
+      color = "#ef4444";
+      lineWidth = 6;
+    }
+
+    drawEvidenceBox(evidenceContext, item.box, label, color, scaleX, scaleY, lineWidth);
+  });
+
+  alerts.forEach((alert) => {
+    const matched = latestRecognitionsForEvidence.some((item) => item.recognized && alertForRecognition(item, latestBehaviorForEvidence));
+    if (!matched && alert.box) {
+      drawEvidenceBox(evidenceContext, alert.box, "Phone-use Alert", "#ef4444", scaleX, scaleY, 5);
+    }
+  });
+
+  if (latestRecognitionsForEvidence.length === 0 && persons.length === 0) {
+    evidenceContext.fillStyle = "rgba(245, 158, 11, 0.92)";
+    evidenceContext.fillRect(14, 66, 420, 34);
+    evidenceContext.fillStyle = "#111827";
+    evidenceContext.font = "15px Arial";
+    evidenceContext.fillText("No AI boxes yet ? keep AI Monitoring running.", 28, 88);
+  }
+
+  drawEvidenceHeader(evidenceContext, width, height);
+
+  evidenceAnimationFrame = requestAnimationFrame(drawEvidenceFrame);
+}
+

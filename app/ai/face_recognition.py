@@ -4,7 +4,12 @@ import json
 import cv2
 import numpy as np
 
-from app.core.config import FACE_LABELS_PATH, FACE_MODEL_PATH, FACE_RECOGNITION_THRESHOLD
+from app.core.config import (
+    FACE_LABELS_PATH,
+    FACE_MODEL_PATH,
+    FACE_RECOGNITION_MIN_CONFIDENCE,
+    FACE_RECOGNITION_THRESHOLD,
+)
 
 
 def confidence_from_distance(distance: float) -> float:
@@ -48,18 +53,63 @@ def _load_label_map() -> dict[int, str]:
     return result
 
 
-def _detect_faces(gray_frame):
+def _skin_ratio(crop) -> float:
+    if crop is None or crop.size == 0:
+        return 0.0
+
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+
+    lower_1 = np.array([0, 25, 45], dtype=np.uint8)
+    upper_1 = np.array([30, 190, 255], dtype=np.uint8)
+
+    lower_2 = np.array([160, 25, 45], dtype=np.uint8)
+    upper_2 = np.array([180, 190, 255], dtype=np.uint8)
+
+    mask = cv2.inRange(hsv, lower_1, upper_1) | cv2.inRange(hsv, lower_2, upper_2)
+    return float(cv2.countNonZero(mask)) / float(mask.size)
+
+
+def _filter_faces_by_quality(faces, frame):
+    height, width = frame.shape[:2]
+    good_faces = []
+
+    for x, y, w, h in faces:
+        aspect = w / float(h)
+        area = w * h
+
+        if not (0.70 <= aspect <= 1.35):
+            continue
+
+        if area < 3500:
+            continue
+
+        if y > height * 0.82:
+            continue
+
+        crop = frame[y : y + h, x : x + w]
+        skin = _skin_ratio(crop)
+
+        # Reduce false face boxes on shirt/object/background.
+        if skin < 0.08:
+            continue
+
+        good_faces.append((x, y, w, h))
+
+    return good_faces
+
+
+def _detect_faces(gray_frame, frame):
     cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(cascade_path)
 
     faces = face_cascade.detectMultiScale(
         gray_frame,
         scaleFactor=1.1,
-        minNeighbors=4,
-        minSize=(40, 40),
+        minNeighbors=6,
+        minSize=(65, 65),
     )
 
-    return faces
+    return _filter_faces_by_quality(faces, frame)
 
 
 def recognize_faces_from_image_data(image_data: str) -> dict:
@@ -74,12 +124,12 @@ def recognize_faces_from_image_data(image_data: str) -> dict:
 
     frame = _decode_base64_frame(image_data)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = _detect_faces(gray)
+    faces = _detect_faces(gray, frame)
 
     if len(faces) == 0:
         return {
             "ok": True,
-            "message": "No face detected.",
+            "message": "No clear face detected.",
             "recognitions": [],
             "face_count": 0,
         }
@@ -93,19 +143,31 @@ def recognize_faces_from_image_data(image_data: str) -> dict:
 
     for x, y, w, h in faces:
         face = gray[y : y + h, x : x + w]
+        face = cv2.equalizeHist(face)
         face = cv2.resize(face, (200, 200))
 
         label, distance = recognizer.predict(face)
-        student_code = label_map.get(int(label))
-        is_known = student_code is not None and float(distance) <= FACE_RECOGNITION_THRESHOLD
+        predicted_student_code = label_map.get(int(label))
+        confidence = confidence_from_distance(distance)
+
+        is_known = (
+            predicted_student_code is not None
+            and float(distance) <= FACE_RECOGNITION_THRESHOLD
+            and confidence >= FACE_RECOGNITION_MIN_CONFIDENCE
+        )
+
+        low_confidence = predicted_student_code is not None and not is_known
 
         recognitions.append(
             {
                 "recognized": bool(is_known),
-                "student_code": student_code if is_known else None,
+                "student_code": predicted_student_code if is_known else None,
+                "predicted_student_code": predicted_student_code,
+                "low_confidence": bool(low_confidence),
                 "distance": round(float(distance), 2),
-                "confidence": confidence_from_distance(distance),
+                "confidence": confidence,
                 "threshold": FACE_RECOGNITION_THRESHOLD,
+                "min_confidence": FACE_RECOGNITION_MIN_CONFIDENCE,
                 "box": {
                     "x": int(x),
                     "y": int(y),
@@ -119,9 +181,8 @@ def recognize_faces_from_image_data(image_data: str) -> dict:
 
     return {
         "ok": True,
-        "message": f"Detected {len(recognitions)} face(s), recognized {recognized_count}.",
+        "message": f"Detected {len(recognitions)} clear face(s), recognized {recognized_count}.",
         "recognitions": recognitions,
         "face_count": len(recognitions),
         "recognized_count": recognized_count,
     }
-

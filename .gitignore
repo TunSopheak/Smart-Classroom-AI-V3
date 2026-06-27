@@ -18,3 +18,6 @@ reports/
 
 media/recordings/*
 !media/recordings/.gitkeep
+
+media/snapshots/*
+!media/snapshots/.gitkeep

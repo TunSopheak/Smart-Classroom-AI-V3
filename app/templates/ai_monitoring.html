@@ -45,9 +45,12 @@
       <button id="stop-ai" disabled>Stop AI Monitoring</button>
     </div>
 
-    <div class="legend-box">
-      <div><span class="legend-dot green"></span> Green box = recognized face</div>
-      <div><span class="legend-dot blue"></span> Blue box = person/body candidate</div>
+    <div class="legend-box alert-legend-box">
+      <div><span class="legend-dot green"></span> Green = recognized student / normal</div>
+      <div><span class="legend-dot blue"></span> Blue = person/body candidate</div>
+      <div><span class="legend-dot amber"></span> Amber = warning/object candidate</div>
+      <div><span class="legend-dot red"></span> Red = alert / phone-use candidate</div>
+      <div><span class="legend-dot yellow"></span> Yellow = unknown face</div>
     </div>
 
     <div class="recording-box">
@@ -132,6 +135,10 @@
       <div id="behavior-system-status" class="note-box">
         Behavior AI is a candidate review support tool for teachers.
       </div>
+
+      <div class="record-actions">
+        <a class="action-btn secondary" href="/behavior-reports">Open Behavior Reports</a>
+      </div>
     </div>
   </div>
 </section>
@@ -180,5 +187,5 @@
   {% endif %}
 </section>
 
-<script src="/static/js/camera.js?v=5"></script>
+<script src="/static/js/camera.js?v=11"></script>
 {% endblock %}
