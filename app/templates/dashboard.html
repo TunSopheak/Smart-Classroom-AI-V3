@@ -6,66 +6,84 @@
 {% set late_count = summary.late|default(0) %}
 {% set absent_count = summary.absent|default(0) %}
 {% set model_ready = face_model is defined and face_model.trained|default(false) %}
+{% set academics_ready = academic_summary.classes_count > 0 and academic_summary.subjects_count > 0 and academic_summary.schedules_count > 0 %}
 
-<section class="dashboard-hero">
-  <div class="hero-copy">
-    <span class="hero-kicker">Smart Classroom AI V3</span>
-    <h1>Classroom Control Dashboard</h1>
-    <p>
-      A clean demo panel for AI attendance, face recognition, behavior candidate review,
-      and Raspberry Pi classroom deployment.
-    </p>
-
-    <div class="hero-actions">
-      <a class="action-btn" href="/ai-monitoring">Start AI Monitoring</a>
-      <a class="action-btn secondary" href="/training">Train Face Model</a>
-      <a class="action-btn secondary" href="/attendance">View Attendance</a>
-      <form method="post" action="/demo/reset" class="inline-form">
-        <button class="danger" type="submit">Reset Demo</button>
-      </form>
-    </div>
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Smart classroom workflow: Class + Subject + Schedule → Session → AI Attendance → Teacher Review.</p>
   </div>
 
-  <div class="hero-status-card">
-    <div class="status-row">
-      <span>System</span>
-      <strong>Demo Ready</strong>
-    </div>
-    <div class="status-row">
-      <span>Face Model</span>
-      {% if model_ready %}
-        <strong class="good">Ready</strong>
-      {% else %}
-        <strong class="warn">Needs Training</strong>
-      {% endif %}
-    </div>
-    <div class="status-row">
-      <span>Pi Deployment</span>
-      <strong class="good">Prepared</strong>
-    </div>
+  <div class="page-actions">
+    <a class="action-btn secondary" href="/academics">Academics</a>
+    <a class="action-btn secondary" href="/sessions">Sessions</a>
+    <a class="action-btn" href="/ai-monitoring">Start AI Monitoring</a>
+    <form method="post" action="/demo/reset" class="inline-form">
+      <button class="danger" type="submit">Reset Demo</button>
+    </form>
+  </div>
+</div>
+
+<section class="cards">
+  <div class="card">
+    <span>Total Students</span>
+    <strong>{{ total_students }}</strong>
+  </div>
+  <div class="card">
+    <span>Present</span>
+    <strong>{{ present_count }}</strong>
+  </div>
+  <div class="card">
+    <span>Late</span>
+    <strong>{{ late_count }}</strong>
+  </div>
+  <div class="card">
+    <span>Absent</span>
+    <strong>{{ absent_count }}</strong>
   </div>
 </section>
 
-<section class="cards dashboard-stats">
-  <div class="card stat-card">
-    <span>Total Students</span>
-    <strong>{{ total_students }}</strong>
-    <small>Registered in demo database</small>
+<section class="panel dashboard-workflow-panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">System Flow</span>
+      <h2>How the Smart Classroom Works</h2>
+    </div>
+    <span class="status-pill status-info">Teacher Demo Flow</span>
   </div>
-  <div class="card stat-card">
-    <span>Present</span>
-    <strong>{{ present_count }}</strong>
-    <small>Recorded by attendance logic</small>
-  </div>
-  <div class="card stat-card">
-    <span>Late</span>
-    <strong>{{ late_count }}</strong>
-    <small>After late time threshold</small>
-  </div>
-  <div class="card stat-card">
-    <span>Absent</span>
-    <strong>{{ absent_count }}</strong>
-    <small>Created when session closes</small>
+
+  <div class="workflow-track">
+    <div class="workflow-card">
+      <span>01</span>
+      <div>
+        <strong>Academic Setup</strong>
+        <p>Create class group, subjects, enrollment, and weekly schedule.</p>
+      </div>
+    </div>
+
+    <div class="workflow-card">
+      <span>02</span>
+      <div>
+        <strong>Generate Session</strong>
+        <p>Today’s session is created from the weekly schedule.</p>
+      </div>
+    </div>
+
+    <div class="workflow-card">
+      <span>03</span>
+      <div>
+        <strong>AI Monitoring</strong>
+        <p>Face recognition records attendance into the active session.</p>
+      </div>
+    </div>
+
+    <div class="workflow-card">
+      <span>04</span>
+      <div>
+        <strong>Teacher Review</strong>
+        <p>Teacher reviews attendance and behavior candidates.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -73,9 +91,10 @@
   <div class="panel active-session-panel">
     <div class="panel-heading">
       <div>
-        <span class="section-label">Current Class</span>
+        <span class="section-label">Current Class Meeting</span>
         <h2>Active Session</h2>
       </div>
+
       {% if active_session and active_session.is_active %}
         <span class="status-pill status-success">Active</span>
       {% else %}
@@ -86,6 +105,15 @@
     {% if active_session %}
       <div class="session-title">{{ active_session.title }}</div>
       <p class="muted">{{ active_session.class_name }} | {{ active_session.subject }} | {{ active_session.room }}</p>
+
+      <div class="session-source-row">
+        {% if active_session.source == "weekly_schedule" %}
+          <span class="source-pill schedule-source">Weekly Schedule</span>
+        {% else %}
+          <span class="source-pill manual-source">Manual Demo</span>
+        {% endif %}
+        <span>This is where AI attendance records will be saved.</span>
+      </div>
 
       <div class="session-times">
         <div>
@@ -101,34 +129,56 @@
           <strong>{{ active_session.close_time }}</strong>
         </div>
       </div>
+
+      <div class="record-actions">
+        <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+        <a class="action-btn secondary" href="/sessions">Manage Sessions</a>
+      </div>
     {% else %}
-      <p class="muted">No active session found. Start or reset a demo session before presenting.</p>
+      <div class="empty-state">
+        <strong>No active session</strong>
+        <p>Press Reset Demo or generate today session from Academics.</p>
+        <div class="empty-actions">
+          <form method="post" action="/demo/reset">
+            <button type="submit">Reset Demo</button>
+          </form>
+          <a class="action-btn secondary" href="/academics">Open Academics</a>
+        </div>
+      </div>
     {% endif %}
   </div>
 
   <div class="panel readiness-panel">
     <div class="panel-heading">
       <div>
-        <span class="section-label">Teacher Demo</span>
-        <h2>Readiness Checklist</h2>
+        <span class="section-label">Demo Readiness</span>
+        <h2>Checklist</h2>
       </div>
       <a class="small-link" href="/system-status">Full status</a>
     </div>
 
     <div class="checklist">
-      <div class="check-item ready">
+      <div class="check-item {% if total_students > 0 %}ready{% else %}warning{% endif %}">
         <span></span>
         <div>
-          <strong>Database connected</strong>
-          <p>Students, sessions, and attendance can be loaded.</p>
+          <strong>Students ready</strong>
+          <p>{{ total_students }} students available for class attendance.</p>
         </div>
       </div>
 
-      <div class="check-item ready">
+      <div class="check-item {% if academics_ready %}ready{% else %}warning{% endif %}">
         <span></span>
         <div>
-          <strong>Demo reset available</strong>
-          <p>Prepare a clean session before showing the system.</p>
+          <strong>Academic schedule ready</strong>
+          <p>{{ academic_summary.classes_count }} class, {{ academic_summary.subjects_count }} subjects, {{ academic_summary.schedules_count }} schedules.</p>
+        </div>
+      </div>
+
+      <div class="check-item {% if active_session %}ready{% else %}warning{% endif %}">
+        <span></span>
+        <div>
+          <strong>Active session</strong>
+          <p>{% if active_session %}Session is ready for AI attendance.{% else %}Generate a session before demo.{% endif %}</p>
         </div>
       </div>
 
@@ -143,8 +193,8 @@
       <div class="check-item ready">
         <span></span>
         <div>
-          <strong>Raspberry Pi ready</strong>
-          <p>Pi 5 can be explained as classroom camera source.</p>
+          <strong>Raspberry Pi 5 ready</strong>
+          <p>Pi 5 can be explained as deployable classroom camera source.</p>
         </div>
       </div>
     </div>
@@ -155,43 +205,28 @@
   <div class="panel">
     <div class="panel-heading">
       <div>
-        <span class="section-label">Demo Flow</span>
-        <h2>Presentation Steps</h2>
+        <span class="section-label">Quick Actions</span>
+        <h2>Demo Control</h2>
       </div>
     </div>
 
-    <div class="demo-steps">
-      <div class="demo-step">
-        <span>01</span>
-        <div>
-          <strong>Reset Demo</strong>
-          <p>Start with a clean session and clean attendance state.</p>
-        </div>
-      </div>
-
-      <div class="demo-step">
-        <span>02</span>
-        <div>
-          <strong>Train Face Model</strong>
-          <p>Capture face images and train LBPH recognition model.</p>
-        </div>
-      </div>
-
-      <div class="demo-step">
-        <span>03</span>
-        <div>
-          <strong>Run AI Monitoring</strong>
-          <p>Show green face box, blue body candidate box, and auto attendance.</p>
-        </div>
-      </div>
-
-      <div class="demo-step">
-        <span>04</span>
-        <div>
-          <strong>Review Attendance</strong>
-          <p>Explain present, late, absent, and duplicate protection.</p>
-        </div>
-      </div>
+    <div class="quick-action-grid">
+      <a href="/academics" class="quick-action-card">
+        <strong>Academics</strong>
+        <p>Class, subject, enrollment, weekly schedule</p>
+      </a>
+      <a href="/training" class="quick-action-card">
+        <strong>AI Training</strong>
+        <p>Capture face dataset and train model</p>
+      </a>
+      <a href="/ai-monitoring" class="quick-action-card">
+        <strong>AI Monitoring</strong>
+        <p>Run face recognition and behavior review</p>
+      </a>
+      <a href="/attendance" class="quick-action-card">
+        <strong>Attendance</strong>
+        <p>Review present, late, and absent records</p>
+      </a>
     </div>
   </div>
 
@@ -216,9 +251,18 @@
                   Student Record
                 {% endif %}
               </strong>
-              <p>{{ item.method }} | {{ item.first_seen_time }}</p>
+              <p>{{ item.method }} | {{ item.first_seen_time or "-" }}</p>
             </div>
-            <span class="status-pill status-info">{{ item.status }}</span>
+
+            {% if item.status == "present" %}
+              <span class="status-pill status-success">Present</span>
+            {% elif item.status == "late" %}
+              <span class="status-pill status-warning">Late</span>
+            {% elif item.status == "absent" %}
+              <span class="status-pill status-danger">Absent</span>
+            {% else %}
+              <span class="status-pill status-muted">{{ item.status }}</span>
+            {% endif %}
           </div>
         {% endfor %}
       </div>

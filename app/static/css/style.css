@@ -1500,3 +1500,102 @@ table strong {
     margin-top: 10px;
   }
 }
+
+/* ================================
+   Stage 8.3 Final Dashboard Polish
+================================ */
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.workflow-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workflow-card,
+.quick-action-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 15px;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.workflow-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.workflow-card > span {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.workflow-card strong,
+.quick-action-card strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.workflow-card p,
+.quick-action-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quick-action-card:hover {
+  border-color: rgba(15, 118, 110, 0.35);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1120px) {
+  .workflow-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .workflow-track,
+  .quick-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-actions {
+    display: grid;
+  }
+
+  .page-actions .action-btn,
+  .page-actions button {
+    width: 100%;
+  }
+}
