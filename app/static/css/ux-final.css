@@ -438,3 +438,44 @@ body {
   70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
   100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
+/* ================================
+   Stage 10 Training Data Improvement
+================================ */
+
+.upload-dataset-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fffc 100%) !important;
+}
+
+.upload-guideline {
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: #f0fdfa;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.upload-guideline strong {
+  color: #115e59;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-guideline p {
+  margin: 0;
+  font-size: 14px;
+}
+
+#photo-upload-input {
+  width: 100%;
+  padding: 12px !important;
+  background: #ffffff;
+}
+
+.dataset-card strong {
+  font-size: 15px;
+}
+
+.dataset-card .status-pill {
+  min-width: 82px;
+  text-align: center;
+}

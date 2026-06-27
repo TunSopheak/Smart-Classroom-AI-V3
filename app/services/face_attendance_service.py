@@ -1,7 +1,7 @@
-﻿from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 from app.ai import face_recognition
-from app.services import attendance_service
+from app.services import attendance_service, student_service
 
 
 def analyze_frame_for_attendance(db: Session, image_data: str) -> dict:
@@ -18,6 +18,17 @@ def analyze_frame_for_attendance(db: Session, image_data: str) -> dict:
     attendance_results = []
 
     for item in recognition_result.get("recognitions", []):
+        student_code = item.get("student_code")
+
+        if item.get("recognized") and student_code:
+            student = student_service.get_by_code(db, student_code)
+            if student:
+                item["student_name"] = student.full_name
+                item["student_display_name"] = student.full_name
+            else:
+                item["student_name"] = student_code
+                item["student_display_name"] = student_code
+
         if not item.get("recognized") or not item.get("student_code"):
             attendance_results.append(
                 {

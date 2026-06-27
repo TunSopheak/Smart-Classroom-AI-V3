@@ -115,7 +115,7 @@ function drawDetections(recognitions, behavior) {
     if (!item.box) return;
 
     const label = item.recognized
-      ? `${item.student_code} ${item.confidence}%`
+      ? `${item.student_display_name || item.student_name || item.student_code} ${item.confidence}%`
       : `Unknown ${item.confidence}%`;
 
     const color = item.recognized ? "#10b981" : "#f59e0b";
@@ -177,7 +177,7 @@ function renderRecognitionResult(result) {
 
   recognitions.forEach((item, index) => {
     const attendance = attendanceResults[index] || {};
-    const studentCode = item.student_code || "Unknown";
+    const studentCode = item.student_display_name || item.student_name || item.student_code || "Unknown";
     const knownText = item.recognized ? "Recognized" : "Unknown";
     const pillClass = item.recognized ? "status-success" : "status-warning";
 
@@ -723,7 +723,7 @@ function drawDetections(recognitions, behavior) {
     if (!item.box) return;
 
     const label = item.recognized
-      ? `${item.student_code} ${item.confidence}%`
+      ? `${item.student_display_name || item.student_name || item.student_code} ${item.confidence}%`
       : `Unknown ${item.confidence}%`;
 
     const color = item.recognized ? "#10b981" : "#f59e0b";
@@ -807,7 +807,7 @@ function drawEvidenceFrame() {
     if (!item.box) return;
 
     const label = item.recognized
-      ? `${item.student_code} ${item.confidence}%`
+      ? `${item.student_display_name || item.student_name || item.student_code} ${item.confidence}%`
       : `Unknown ${item.confidence}%`;
 
     const color = item.recognized ? "#10b981" : "#f59e0b";

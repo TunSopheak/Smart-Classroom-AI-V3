@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -34,6 +35,28 @@ def capture_face_image(
     result = training_service.save_face_capture(db, student_code, image_data)
     status_code = 200 if result.get("ok") else 400
     return JSONResponse(result, status_code=status_code)
+
+
+@router.post("/upload-photos")
+async def upload_student_photos(
+    student_code: str = Form(...),
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    uploaded_files = []
+
+    for file in files:
+        content = await file.read()
+        uploaded_files.append((file.filename or "uploaded_photo.jpg", content))
+
+    result = training_service.save_uploaded_photo_dataset(
+        db=db,
+        student_code=student_code,
+        uploaded_files=uploaded_files,
+    )
+
+    status_code = 200 if result.get("ok") else 400
+    return JSONResponse(content=jsonable_encoder(result), status_code=status_code)
 
 
 @router.post("/train")

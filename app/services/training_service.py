@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import re
 from pathlib import Path
 
@@ -119,4 +119,89 @@ def save_face_capture(db: Session, student_code: str, image_data: str) -> dict:
 
 def train_model() -> dict:
     return face_training.train_lbph_model()
+
+
+def _save_face_frame_to_dataset(student, frame) -> dict:
+    face_box = _largest_face(frame)
+
+    if face_box is None:
+        return {
+            "ok": False,
+            "message": "No clear face detected in this image.",
+        }
+
+    x, y, w, h = face_box
+    face = frame[y : y + h, x : x + w]
+    face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+    face_gray = cv2.resize(face_gray, (200, 200))
+
+    folder = dataset_folder_for_student(student)
+    folder.mkdir(parents=True, exist_ok=True)
+
+    existing_images = sorted(folder.glob("*.jpg"))
+    next_number = len(existing_images) + 1
+    image_path = folder / f"{next_number:03d}.jpg"
+
+    saved = cv2.imwrite(str(image_path), face_gray)
+    if not saved:
+        return {"ok": False, "message": "Failed to save face image."}
+
+    return {
+        "ok": True,
+        "image_path": str(image_path),
+        "image_count": next_number,
+    }
+
+
+def save_uploaded_photo_dataset(
+    db: Session,
+    student_code: str,
+    uploaded_files: list[tuple[str, bytes]],
+) -> dict:
+    student = student_service.get_by_code(db, student_code)
+    if not student:
+        return {"ok": False, "message": f"Student not found: {student_code}"}
+
+    saved_count = 0
+    skipped_count = 0
+    errors = []
+
+    for filename, content in uploaded_files:
+        try:
+            if not content:
+                skipped_count += 1
+                errors.append(f"{filename}: empty file")
+                continue
+
+            arr = np.frombuffer(content, dtype=np.uint8)
+            frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+
+            if frame is None:
+                skipped_count += 1
+                errors.append(f"{filename}: invalid image")
+                continue
+
+            result = _save_face_frame_to_dataset(student, frame)
+            if result.get("ok"):
+                saved_count += 1
+            else:
+                skipped_count += 1
+                errors.append(f"{filename}: {result.get('message')}")
+
+        except Exception as exc:
+            skipped_count += 1
+            errors.append(f"{filename}: {type(exc).__name__}: {exc}")
+
+    image_count = face_training.dataset_counts().get(student.student_code, 0)
+
+    return {
+        "ok": saved_count > 0,
+        "message": f"Uploaded photos processed. Saved: {saved_count}, skipped: {skipped_count}.",
+        "student_code": student.student_code,
+        "student_name": student.full_name,
+        "saved_count": saved_count,
+        "skipped_count": skipped_count,
+        "image_count": image_count,
+        "errors": errors[:8],
+    }
 

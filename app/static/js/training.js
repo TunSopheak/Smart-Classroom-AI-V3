@@ -1,4 +1,4 @@
-﻿const startButton = document.getElementById("start-camera");
+const startButton = document.getElementById("start-camera");
 const stopButton = document.getElementById("stop-camera");
 const captureButton = document.getElementById("capture-face");
 const trainButton = document.getElementById("train-model");
@@ -173,3 +173,66 @@ if (startButton) startButton.addEventListener("click", startCamera);
 if (stopButton) stopButton.addEventListener("click", stopCamera);
 if (captureButton) captureButton.addEventListener("click", captureFace);
 if (trainButton) trainButton.addEventListener("click", trainModel);
+
+
+// ================================
+// Stage 10.2 Upload Photos Dataset
+// ================================
+
+const photoUploadInput = document.getElementById("photo-upload-input");
+const uploadPhotosButton = document.getElementById("upload-photos");
+const uploadMessage = document.getElementById("upload-message");
+
+function setUploadMessage(message, className = "") {
+  if (uploadMessage) {
+    uploadMessage.textContent = message;
+    uploadMessage.className = "note-box " + className;
+  }
+}
+
+async function uploadPhotosDataset() {
+  if (!photoUploadInput || !photoUploadInput.files || photoUploadInput.files.length === 0) {
+    setUploadMessage("Please choose at least one photo.", "status-warning");
+    return;
+  }
+
+  const studentCode = studentSelect.value;
+  const formData = new FormData();
+  formData.append("student_code", studentCode);
+
+  Array.from(photoUploadInput.files).forEach((file) => {
+    formData.append("files", file);
+  });
+
+  uploadPhotosButton.disabled = true;
+  setUploadMessage(`Uploading ${photoUploadInput.files.length} photo(s) for ${studentCode}...`);
+
+  try {
+    const response = await fetch("/training/upload-photos", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.message || "Upload failed.");
+    }
+
+    let message = `${result.message} Total dataset for ${result.student_name}: ${result.image_count} images.`;
+    if (result.errors && result.errors.length > 0) {
+      message += " Some files skipped: " + result.errors.join(" | ");
+    }
+
+    setUploadMessage(message, result.skipped_count > 0 ? "status-warning" : "status-success");
+    photoUploadInput.value = "";
+  } catch (error) {
+    console.error("Photo upload failed:", error);
+    setUploadMessage(error.message || "Photo upload failed.", "status-danger");
+  } finally {
+    uploadPhotosButton.disabled = false;
+  }
+}
+
+if (uploadPhotosButton) uploadPhotosButton.addEventListener("click", uploadPhotosDataset);
+

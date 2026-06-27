@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <div class="page-header">
@@ -52,7 +52,7 @@
     <span>03</span>
     <div>
       <strong>Capture dataset</strong>
-      <p>Capture 10 to 20 images per student for better recognition.</p>
+      <p>Capture from camera or upload photos if the student is absent.</p>
     </div>
   </div>
   <div class="flow-step">
@@ -99,12 +99,39 @@
     </div>
   </div>
 
+  <div class="panel upload-dataset-panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Upload Dataset</span>
+        <h2>Upload Photos Dataset</h2>
+        <p class="muted">Use this when a student is absent or cannot stand in front of the camera today.</p>
+      </div>
+      <span class="status-pill status-info">Photo Upload</span>
+    </div>
+
+    <div class="upload-guideline">
+      <strong>Recommended photos</strong>
+      <p>Upload 5?20 clear face photos with different angles and lighting. The system will detect and crop the face automatically.</p>
+    </div>
+
+    <label class="label">Photos for selected student</label>
+    <input id="photo-upload-input" type="file" accept="image/*" multiple>
+
+    <div class="button-row training-actions">
+      <button id="upload-photos" type="button">Upload Photos to Dataset</button>
+    </div>
+
+    <div id="upload-message" class="note-box">
+      Select student on the left, choose photos here, then upload. Retrain the model after upload.
+    </div>
+  </div>
+
   <div class="panel">
     <div class="panel-heading">
       <div>
         <span class="section-label">Model</span>
         <h2>Model Training</h2>
-        <p class="muted">Train after capturing student face images.</p>
+        <p class="muted">Train after capturing or uploading student face images.</p>
       </div>
       <span id="model-badge" class="status-pill {% if training_status.trained %}status-success{% else %}status-warning{% endif %}">
         {% if training_status.trained %}Trained{% else %}Not Trained{% endif %}
