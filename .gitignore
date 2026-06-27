@@ -21,3 +21,6 @@ media/recordings/*
 
 media/snapshots/*
 !media/snapshots/.gitkeep
+
+# Local YOLO model weights
+yolov8n.pt
