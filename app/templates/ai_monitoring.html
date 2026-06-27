@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <div class="page-header">
@@ -48,6 +48,31 @@
     <div class="legend-box">
       <div><span class="legend-dot green"></span> Green box = recognized face</div>
       <div><span class="legend-dot blue"></span> Blue box = person/body candidate</div>
+    </div>
+
+    <div class="recording-box">
+      <div class="recording-header">
+        <div>
+          <strong>Video Evidence Recording</strong>
+          <p>Record the camera together with AI frame boxes into the active session for teacher review later.</p>
+        </div>
+        <span id="recording-badge" class="status-pill status-muted">Not Recording</span>
+      </div>
+
+      <div class="crud-form recording-form evidence-note-form">
+        <input id="recording-event-type" type="hidden" value="ai_monitoring_clip">
+        <input id="recording-note" placeholder="Optional note, e.g. student review / phone-use candidate / class evidence">
+      </div>
+
+      <div class="button-row monitoring-actions">
+        <button id="start-recording" disabled>Start Recording</button>
+        <button id="stop-recording" disabled>Stop Recording</button>
+        <button id="save-recording" disabled>Save Clip</button>
+      </div>
+
+      <div id="recording-message" class="note-box">
+        Start camera, then record. AI Monitoring will run automatically and saved clips will include frame boxes.
+      </div>
     </div>
   </div>
 

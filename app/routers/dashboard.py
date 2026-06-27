@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.services import (
     demo_service,
     session_service,
     student_service,
+    video_record_service,
 )
 
 router = APIRouter()
@@ -29,6 +30,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         "recent": attendance_service.recent_attendance(db),
         "active_session": session_service.get_active_session(db),
         "academic_summary": academic_service.academic_summary(db),
+        "video_summary": video_record_service.video_summary(db),
     }
     return templates.TemplateResponse(request, "dashboard.html", context)
 

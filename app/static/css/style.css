@@ -1599,3 +1599,81 @@ table strong {
     width: 100%;
   }
 }
+
+/* ================================
+   Stage 9 Video Evidence Tracking
+================================ */
+
+.recording-box {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.recording-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.recording-header strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.recording-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.recording-form {
+  grid-template-columns: 240px 1fr;
+  margin-bottom: 10px;
+}
+
+.video-record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.video-record-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.evidence-video {
+  width: 100%;
+  border-radius: 12px;
+  background: #0f172a;
+  margin: 12px 0;
+}
+
+@media (max-width: 1100px) {
+  .video-record-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .recording-header {
+    display: block;
+  }
+
+  .recording-header .status-pill {
+    margin-top: 10px;
+  }
+
+  .recording-form {
+    grid-template-columns: 1fr;
+  }
+}

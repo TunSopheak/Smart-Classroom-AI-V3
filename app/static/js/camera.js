@@ -1,4 +1,4 @@
-﻿const startButton = document.getElementById("start-camera");
+const startButton = document.getElementById("start-camera");
 const stopButton = document.getElementById("stop-camera");
 const video = document.getElementById("camera-preview");
 const overlay = document.getElementById("detection-overlay");
@@ -338,3 +338,596 @@ window.addEventListener("resize", resizeOverlay);
 if (analyzeOnceButton) analyzeOnceButton.addEventListener("click", analyzeFrame);
 if (startAIButton) startAIButton.addEventListener("click", startAIAnalysis);
 if (stopAIButton) stopAIButton.addEventListener("click", stopAIAnalysis);
+
+
+// ================================
+// Stage 9 Video Evidence Recording
+// ================================
+
+const startRecordingButton = document.getElementById("start-recording");
+const stopRecordingButton = document.getElementById("stop-recording");
+const saveRecordingButton = document.getElementById("save-recording");
+const recordingBadge = document.getElementById("recording-badge");
+const recordingMessage = document.getElementById("recording-message");
+const recordingEventType = document.getElementById("recording-event-type");
+const recordingNote = document.getElementById("recording-note");
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let recordingStartedAt = null;
+let recordingDurationSeconds = 0;
+
+function setRecordingStatus(message, label, className) {
+  if (recordingMessage) recordingMessage.textContent = message;
+  if (recordingBadge) {
+    recordingBadge.textContent = label;
+    recordingBadge.className = "status-pill " + className;
+  }
+}
+
+function setRecordingButtons(state) {
+  if (!startRecordingButton || !stopRecordingButton || !saveRecordingButton) return;
+
+  if (state === "ready") {
+    startRecordingButton.disabled = !cameraStream;
+    stopRecordingButton.disabled = true;
+    saveRecordingButton.disabled = !recordedBlob;
+  } else if (state === "recording") {
+    startRecordingButton.disabled = true;
+    stopRecordingButton.disabled = false;
+    saveRecordingButton.disabled = true;
+  } else if (state === "recorded") {
+    startRecordingButton.disabled = false;
+    stopRecordingButton.disabled = true;
+    saveRecordingButton.disabled = false;
+  } else {
+    startRecordingButton.disabled = true;
+    stopRecordingButton.disabled = true;
+    saveRecordingButton.disabled = true;
+  }
+}
+
+function getSupportedMimeType() {
+  const types = [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+
+  for (const type of types) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) {
+      return type;
+    }
+  }
+
+  return "";
+}
+
+function startVideoRecording() {
+  if (!cameraStream) {
+    setRecordingStatus("Start camera first before recording.", "Camera Needed", "status-warning");
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    setRecordingStatus("MediaRecorder is not supported in this browser.", "Not Supported", "status-danger");
+    return;
+  }
+
+  recordedChunks = [];
+  recordedBlob = null;
+  recordingDurationSeconds = 0;
+  recordingStartedAt = Date.now();
+
+  const mimeType = getSupportedMimeType();
+  const options = mimeType ? { mimeType } : {};
+
+  mediaRecorder = new MediaRecorder(cameraStream, options);
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = () => {
+    const finalMimeType = mediaRecorder.mimeType || "video/webm";
+    recordedBlob = new Blob(recordedChunks, { type: finalMimeType });
+    recordingDurationSeconds = recordingStartedAt
+      ? (Date.now() - recordingStartedAt) / 1000
+      : 0;
+
+    setRecordingStatus(
+      `Recording stopped. Clip length: ${recordingDurationSeconds.toFixed(1)}s. Click Save Clip.`,
+      "Clip Ready",
+      "status-info"
+    );
+    setRecordingButtons("recorded");
+  };
+
+  mediaRecorder.start();
+  setRecordingStatus("Recording video evidence...", "Recording", "status-danger");
+  setRecordingButtons("recording");
+}
+
+function stopVideoRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+}
+
+async function saveVideoRecording() {
+  if (!recordedBlob) {
+    setRecordingStatus("No recorded clip to save.", "No Clip", "status-warning");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("video_file", recordedBlob, "ai_monitoring_clip.webm");
+  formData.append("event_type", recordingEventType?.value || "manual_clip");
+  formData.append("note", recordingNote?.value || "");
+  formData.append("duration_seconds", recordingDurationSeconds.toFixed(2));
+
+  try {
+    setRecordingStatus("Saving video evidence into active session...", "Saving", "status-info");
+    if (saveRecordingButton) saveRecordingButton.disabled = true;
+
+    const response = await fetch("/video-records/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!result.ok) {
+      throw new Error(result.message || "Save failed.");
+    }
+
+    recordedBlob = null;
+    recordedChunks = [];
+
+    setRecordingStatus("Video evidence saved successfully. Open Video Records to review.", "Saved", "status-success");
+    setRecordingButtons("ready");
+  } catch (error) {
+    console.error("Video save failed:", error);
+    setRecordingStatus("Video save failed: " + (error.message || error.name), "Error", "status-danger");
+    setRecordingButtons("recorded");
+  }
+}
+
+if (startRecordingButton) {
+  startRecordingButton.addEventListener("click", startVideoRecording);
+}
+if (stopRecordingButton) {
+  stopRecordingButton.addEventListener("click", stopVideoRecording);
+}
+if (saveRecordingButton) {
+  saveRecordingButton.addEventListener("click", saveVideoRecording);
+}
+
+// Enable recording button after camera starts.
+if (startButton) {
+  startButton.addEventListener("click", () => {
+    setTimeout(() => {
+      if (cameraStream) {
+        setRecordingButtons("ready");
+        setRecordingStatus("Camera ready. You can record a short evidence clip.", "Ready", "status-info");
+      }
+    }, 700);
+  });
+}
+
+if (stopButton) {
+  stopButton.addEventListener("click", () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      stopVideoRecording();
+    }
+    setRecordingButtons("disabled");
+    setRecordingStatus("Camera stopped. Start camera to record video evidence.", "Not Recording", "status-muted");
+  });
+}
+
+
+// ================================
+// Stage 9.4 Record AI View With Boxes
+// Overrides previous raw-camera recording
+// ================================
+
+let evidenceCanvas = null;
+let evidenceContext = null;
+let evidenceAnimationFrame = null;
+let evidenceStream = null;
+
+function stopEvidenceCanvasLoop() {
+  if (evidenceAnimationFrame) {
+    cancelAnimationFrame(evidenceAnimationFrame);
+    evidenceAnimationFrame = null;
+  }
+
+  if (evidenceStream) {
+    evidenceStream.getTracks().forEach((track) => track.stop());
+    evidenceStream = null;
+  }
+}
+
+function drawEvidenceFrame() {
+  if (!cameraStream || !video) return;
+
+  const width = video.videoWidth || lastCaptureWidth || 640;
+  const height = video.videoHeight || lastCaptureHeight || 480;
+
+  if (!evidenceCanvas) {
+    evidenceCanvas = document.createElement("canvas");
+    evidenceContext = evidenceCanvas.getContext("2d");
+  }
+
+  if (evidenceCanvas.width !== width || evidenceCanvas.height !== height) {
+    evidenceCanvas.width = width;
+    evidenceCanvas.height = height;
+  }
+
+  evidenceContext.clearRect(0, 0, width, height);
+  evidenceContext.drawImage(video, 0, 0, width, height);
+
+  // Draw the AI overlay frame boxes into the recorded video.
+  if (overlay) {
+    evidenceContext.drawImage(overlay, 0, 0, width, height);
+  }
+
+  // Small recording label for teacher evidence context.
+  evidenceContext.fillStyle = "rgba(15, 23, 42, 0.72)";
+  evidenceContext.fillRect(14, 14, 230, 34);
+  evidenceContext.fillStyle = "#ffffff";
+  evidenceContext.font = "16px Arial";
+  evidenceContext.fillText("AI Monitoring Evidence", 26, 37);
+
+  evidenceAnimationFrame = requestAnimationFrame(drawEvidenceFrame);
+}
+
+function startVideoRecording() {
+  if (!cameraStream) {
+    setRecordingStatus("Start camera first before recording.", "Camera Needed", "status-warning");
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    setRecordingStatus("MediaRecorder is not supported in this browser.", "Not Supported", "status-danger");
+    return;
+  }
+
+  recordedChunks = [];
+  recordedBlob = null;
+  recordingDurationSeconds = 0;
+  recordingStartedAt = Date.now();
+
+  stopEvidenceCanvasLoop();
+  drawEvidenceFrame();
+
+  if (!evidenceCanvas || !evidenceCanvas.captureStream) {
+    setRecordingStatus("Canvas recording is not supported in this browser.", "Not Supported", "status-danger");
+    return;
+  }
+
+  evidenceStream = evidenceCanvas.captureStream(24);
+
+  const mimeType = getSupportedMimeType();
+  const options = mimeType ? { mimeType } : {};
+
+  mediaRecorder = new MediaRecorder(evidenceStream, options);
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = () => {
+    const finalMimeType = mediaRecorder.mimeType || "video/webm";
+    recordedBlob = new Blob(recordedChunks, { type: finalMimeType });
+    recordingDurationSeconds = recordingStartedAt
+      ? (Date.now() - recordingStartedAt) / 1000
+      : 0;
+
+    stopEvidenceCanvasLoop();
+
+    setRecordingStatus(
+      `AI monitoring clip ready: ${recordingDurationSeconds.toFixed(1)}s. Click Save Clip.`,
+      "Clip Ready",
+      "status-info"
+    );
+    setRecordingButtons("recorded");
+  };
+
+  mediaRecorder.start();
+  setRecordingStatus("Recording AI view with frame boxes...", "Recording", "status-danger");
+  setRecordingButtons("recording");
+}
+
+function stopVideoRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  } else {
+    stopEvidenceCanvasLoop();
+  }
+}
+
+async function saveVideoRecording() {
+  if (!recordedBlob) {
+    setRecordingStatus("No recorded clip to save.", "No Clip", "status-warning");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("video_file", recordedBlob, "ai_monitoring_evidence.webm");
+  formData.append("event_type", "ai_monitoring_clip");
+  formData.append("note", recordingNote?.value || "AI monitoring evidence clip with frame boxes.");
+  formData.append("duration_seconds", recordingDurationSeconds.toFixed(2));
+
+  try {
+    setRecordingStatus("Saving AI monitoring clip into active session...", "Saving", "status-info");
+    if (saveRecordingButton) saveRecordingButton.disabled = true;
+
+    const response = await fetch("/video-records/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!result.ok) {
+      throw new Error(result.message || "Save failed.");
+    }
+
+    recordedBlob = null;
+    recordedChunks = [];
+
+    setRecordingStatus("Video evidence saved with AI frame boxes. Open Video Records to review.", "Saved", "status-success");
+    setRecordingButtons("ready");
+  } catch (error) {
+    console.error("Video save failed:", error);
+    setRecordingStatus("Video save failed: " + (error.message || error.name), "Error", "status-danger");
+    setRecordingButtons("recorded");
+  }
+}
+
+
+// ================================
+// Stage 9.5 Evidence Clip With Real AI Boxes
+// Records video + direct AI detection boxes
+// ================================
+
+let latestRecognitionsForEvidence = [];
+let latestBehaviorForEvidence = {};
+
+// Override drawDetections so we always keep latest AI boxes for recording.
+function drawDetections(recognitions, behavior) {
+  latestRecognitionsForEvidence = Array.isArray(recognitions) ? recognitions : [];
+  latestBehaviorForEvidence = behavior || {};
+
+  if (!overlay || !video) return;
+
+  resizeOverlay();
+  const ctx = overlay.getContext("2d");
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  const scaleX = overlay.width / lastCaptureWidth;
+  const scaleY = overlay.height / lastCaptureHeight;
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  persons.forEach((box, index) => {
+    drawBox(ctx, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 2);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const label = item.recognized
+      ? `${item.student_code} ${item.confidence}%`
+      : `Unknown ${item.confidence}%`;
+
+    const color = item.recognized ? "#10b981" : "#f59e0b";
+    drawBox(ctx, item.box, label, color, scaleX, scaleY, 4);
+  });
+}
+
+function drawEvidenceBox(ctx, box, label, color, scaleX, scaleY, lineWidth) {
+  if (!box) return;
+
+  const x = box.x * scaleX;
+  const y = box.y * scaleY;
+  const w = box.w * scaleX;
+  const h = box.h * scaleY;
+
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.strokeRect(x, y, w, h);
+
+  ctx.font = "18px Arial";
+  const textWidth = ctx.measureText(label).width + 18;
+  const labelY = Math.max(0, y - 32);
+
+  ctx.fillRect(x, labelY, textWidth, 30);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(label, x + 9, labelY + 21);
+}
+
+function drawEvidenceHeader(ctx, width, height) {
+  const now = new Date().toLocaleString();
+
+  ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+  ctx.fillRect(14, 14, 420, 42);
+
+  ctx.fillStyle = "#ef4444";
+  ctx.beginPath();
+  ctx.arc(34, 35, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "18px Arial";
+  ctx.fillText("AI Monitoring Evidence Clip", 50, 40);
+
+  ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+  ctx.fillRect(14, height - 50, Math.min(width - 28, 720), 36);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "15px Arial";
+  ctx.fillText(`Recorded: ${now} | Green = recognized face | Blue = person candidate`, 28, height - 27);
+}
+
+function drawEvidenceFrame() {
+  if (!cameraStream || !video) return;
+
+  const width = video.videoWidth || lastCaptureWidth || 640;
+  const height = video.videoHeight || lastCaptureHeight || 480;
+
+  if (!evidenceCanvas) {
+    evidenceCanvas = document.createElement("canvas");
+    evidenceContext = evidenceCanvas.getContext("2d");
+  }
+
+  if (evidenceCanvas.width !== width || evidenceCanvas.height !== height) {
+    evidenceCanvas.width = width;
+    evidenceCanvas.height = height;
+  }
+
+  evidenceContext.clearRect(0, 0, width, height);
+  evidenceContext.drawImage(video, 0, 0, width, height);
+
+  const scaleX = width / (lastCaptureWidth || width);
+  const scaleY = height / (lastCaptureHeight || height);
+
+  const persons = latestBehaviorForEvidence?.person_candidates || [];
+  persons.forEach((box, index) => {
+    drawEvidenceBox(evidenceContext, box, `Person ${index + 1}`, "#3b82f6", scaleX, scaleY, 3);
+  });
+
+  latestRecognitionsForEvidence.forEach((item) => {
+    if (!item.box) return;
+
+    const label = item.recognized
+      ? `${item.student_code} ${item.confidence}%`
+      : `Unknown ${item.confidence}%`;
+
+    const color = item.recognized ? "#10b981" : "#f59e0b";
+    drawEvidenceBox(evidenceContext, item.box, label, color, scaleX, scaleY, 5);
+  });
+
+  if (latestRecognitionsForEvidence.length === 0 && persons.length === 0) {
+    evidenceContext.fillStyle = "rgba(245, 158, 11, 0.92)";
+    evidenceContext.fillRect(14, 66, 420, 34);
+    evidenceContext.fillStyle = "#111827";
+    evidenceContext.font = "15px Arial";
+    evidenceContext.fillText("No AI boxes yet ? keep AI Monitoring running.", 28, 88);
+  }
+
+  drawEvidenceHeader(evidenceContext, width, height);
+
+  evidenceAnimationFrame = requestAnimationFrame(drawEvidenceFrame);
+}
+
+// Override recording start: auto-run AI + record composed canvas.
+function startVideoRecording() {
+  if (!cameraStream) {
+    setRecordingStatus("Start camera first before recording.", "Camera Needed", "status-warning");
+    return;
+  }
+
+  if (!window.MediaRecorder) {
+    setRecordingStatus("MediaRecorder is not supported in this browser.", "Not Supported", "status-danger");
+    return;
+  }
+
+  // Important: auto-start AI so frame boxes appear in the saved evidence clip.
+  if (!aiTimer) {
+    startAIAnalysis();
+  }
+
+  recordedChunks = [];
+  recordedBlob = null;
+  recordingDurationSeconds = 0;
+  recordingStartedAt = Date.now();
+
+  stopEvidenceCanvasLoop();
+  drawEvidenceFrame();
+
+  if (!evidenceCanvas || !evidenceCanvas.captureStream) {
+    setRecordingStatus("Canvas recording is not supported in this browser.", "Not Supported", "status-danger");
+    return;
+  }
+
+  evidenceStream = evidenceCanvas.captureStream(24);
+
+  const mimeType = getSupportedMimeType();
+  const options = mimeType ? { mimeType } : {};
+
+  mediaRecorder = new MediaRecorder(evidenceStream, options);
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = () => {
+    const finalMimeType = mediaRecorder.mimeType || "video/webm";
+    recordedBlob = new Blob(recordedChunks, { type: finalMimeType });
+    recordingDurationSeconds = recordingStartedAt
+      ? (Date.now() - recordingStartedAt) / 1000
+      : 0;
+
+    stopEvidenceCanvasLoop();
+
+    setRecordingStatus(
+      `AI evidence clip ready: ${recordingDurationSeconds.toFixed(1)}s. Click Save Clip.`,
+      "Clip Ready",
+      "status-info"
+    );
+    setRecordingButtons("recorded");
+  };
+
+  mediaRecorder.start();
+  setRecordingStatus("Recording camera + AI frame boxes...", "Recording", "status-danger");
+  setRecordingButtons("recording");
+}
+
+async function saveVideoRecording() {
+  if (!recordedBlob) {
+    setRecordingStatus("No recorded clip to save.", "No Clip", "status-warning");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("video_file", recordedBlob, "ai_monitoring_with_boxes.webm");
+  formData.append("event_type", "ai_monitoring_clip");
+  formData.append("note", recordingNote?.value || "AI monitoring evidence clip with face/person frame boxes.");
+  formData.append("duration_seconds", recordingDurationSeconds.toFixed(2));
+
+  try {
+    setRecordingStatus("Saving AI evidence clip into active session...", "Saving", "status-info");
+    if (saveRecordingButton) saveRecordingButton.disabled = true;
+
+    const response = await fetch("/video-records/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!result.ok) {
+      throw new Error(result.message || "Save failed.");
+    }
+
+    recordedBlob = null;
+    recordedChunks = [];
+
+    setRecordingStatus("Saved. Video Records now contains camera + AI frame boxes.", "Saved", "status-success");
+    setRecordingButtons("ready");
+  } catch (error) {
+    console.error("Video save failed:", error);
+    setRecordingStatus("Video save failed: " + (error.message || error.name), "Error", "status-danger");
+    setRecordingButtons("recorded");
+  }
+}
+

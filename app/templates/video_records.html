@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Video Records</h1>
+    <p>Review classroom video evidence by session for later teacher follow-up. These clips support review only, not final judgment.</p>
+  </div>
+
+  <div class="page-actions">
+    <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+  </div>
+</div>
+
+<section class="cards">
+  <div class="card">
+    <span>Total Clips</span>
+    <strong>{{ summary.total_records }}</strong>
+    <small>Saved evidence</small>
+  </div>
+  <div class="card">
+    <span>Storage Used</span>
+    <strong>{{ summary.total_size_mb }}</strong>
+    <small>MB</small>
+  </div>
+  <div class="card">
+    <span>Evidence Type</span>
+    <strong>Video</strong>
+    <small>Session-linked clips</small>
+  </div>
+  <div class="card">
+    <span>Review Mode</span>
+    <strong>Teacher</strong>
+    <small>Track later</small>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Evidence Center</span>
+      <h2>Saved AI Monitoring Evidence</h2>
+    </div>
+  </div>
+
+  <div class="evidence-toolbar">
+    <input id="evidence-search" placeholder="Search by title, session, note, or event type">
+    <select id="evidence-type-filter">
+      <option value="">All event types</option>
+      <option value="ai_monitoring_clip">AI monitoring clip</option>
+      <option value="manual_clip">Manual clip</option>
+      <option value="behavior_candidate">Behavior candidate</option>
+      <option value="face_attendance">Face attendance</option>
+    </select>
+    <select id="evidence-sort">
+      <option value="latest">Latest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </div>
+
+  {% if records %}
+    <div class="evidence-list" id="evidence-list">
+      {% for item in records %}
+        <article
+          class="evidence-item"
+          data-type="{{ item.event_type }}"
+          data-time="{{ item.recorded_at }}"
+          data-search="{{ item.title }} {% if item.session %}{{ item.session.title }}{% endif %} {{ item.event_type }} {{ item.note }}"
+        >
+          <div class="evidence-main">
+            <div>
+              <div class="evidence-title">{{ item.title }}</div>
+              <div class="evidence-session">
+                {% if item.session %}
+                  {{ item.session.title }}
+                {% else %}
+                  Session record
+                {% endif %}
+              </div>
+
+              <div class="evidence-meta-row">
+                <span>Type: <strong>{{ item.event_type }}</strong></span>
+                <span>Duration: <strong>{{ item.duration_seconds|round(1) }}s</strong></span>
+                <span>Size: <strong>{{ (item.file_size_bytes / 1024 / 1024)|round(2) }} MB</strong></span>
+                <span>Time: <strong>{{ item.recorded_at }}</strong></span>
+              </div>
+            </div>
+
+            <div class="evidence-actions">
+              <span class="source-pill schedule-source">{{ item.event_type }}</span>
+            </div>
+          </div>
+
+          <details class="evidence-preview">
+            <summary>View video evidence</summary>
+            <video controls preload="metadata">
+              <source src="{{ item.video_path }}" type="{{ item.mime_type }}">
+              Your browser does not support the video tag.
+            </video>
+
+            {% if item.note %}
+              <div class="evidence-note">{{ item.note }}</div>
+            {% endif %}
+          </details>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No video records yet</strong>
+      <p>Open AI Monitoring, start camera, record a short clip, and save it into the active session.</p>
+      <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+    </div>
+  {% endif %}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const searchInput = document.getElementById("evidence-search");
+  const typeFilter = document.getElementById("evidence-type-filter");
+  const sortSelect = document.getElementById("evidence-sort");
+  const list = document.getElementById("evidence-list");
+
+  function filterEvidence() {
+    if (!list) return;
+
+    const query = (searchInput?.value || "").toLowerCase().trim();
+    const type = typeFilter?.value || "";
+    const items = Array.from(list.querySelectorAll(".evidence-item"));
+
+    items.forEach((item) => {
+      const searchText = (item.dataset.search || "").toLowerCase();
+      const itemType = item.dataset.type || "";
+      const matchSearch = !query || searchText.includes(query);
+      const matchType = !type || itemType === type;
+
+      item.style.display = matchSearch && matchType ? "" : "none";
+    });
+  }
+
+  function sortEvidence() {
+    if (!list) return;
+
+    const items = Array.from(list.querySelectorAll(".evidence-item"));
+    const mode = sortSelect?.value || "latest";
+
+    items.sort((a, b) => {
+      const aTime = new Date(a.dataset.time).getTime() || 0;
+      const bTime = new Date(b.dataset.time).getTime() || 0;
+      return mode === "oldest" ? aTime - bTime : bTime - aTime;
+    });
+
+    items.forEach((item) => list.appendChild(item));
+    filterEvidence();
+  }
+
+  if (searchInput) searchInput.addEventListener("input", filterEvidence);
+  if (typeFilter) typeFilter.addEventListener("change", filterEvidence);
+  if (sortSelect) sortSelect.addEventListener("change", sortEvidence);
+</script>
+{% endblock %}

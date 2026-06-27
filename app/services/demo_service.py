@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.models.subject import Subject
 from app.models.weekly_schedule import WeeklySchedule
+from app.models.video_record import VideoRecord
 from app.services import academic_service
 
 
@@ -101,6 +102,7 @@ def reset_demo_data(db: Session) -> dict:
 
     deleted_attendance = db.query(Attendance).delete(synchronize_session=False)
     deleted_behavior = db.query(BehaviorEvent).delete(synchronize_session=False)
+    deleted_video_records = db.query(VideoRecord).delete(synchronize_session=False)
     deleted_sessions = db.query(ClassSession).delete(synchronize_session=False)
     deleted_enrollments = db.query(Enrollment).delete(synchronize_session=False)
     deleted_schedules = db.query(WeeklySchedule).delete(synchronize_session=False)
@@ -118,6 +120,7 @@ def reset_demo_data(db: Session) -> dict:
         "message": "Demo data reset successfully with academic schedule.",
         "deleted_attendance": deleted_attendance,
         "deleted_behavior_events": deleted_behavior,
+        "deleted_video_records": deleted_video_records,
         "deleted_sessions": deleted_sessions,
         "deleted_enrollments": deleted_enrollments,
         "deleted_schedules": deleted_schedules,

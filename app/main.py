@@ -1,4 +1,5 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +15,7 @@ from app.routers import (
     students,
     system_status,
     training,
+    video_records,
 )
 from app.services import session_service, student_service
 
@@ -33,6 +35,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Smart Classroom AI V3", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+Path("media/recordings").mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 app.include_router(dashboard.router)
 app.include_router(academics.router)
@@ -43,3 +47,4 @@ app.include_router(training.router)
 app.include_router(ai_monitoring.router)
 app.include_router(camera.router)
 app.include_router(system_status.router)
+app.include_router(video_records.router)
