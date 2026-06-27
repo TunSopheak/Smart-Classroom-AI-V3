@@ -1,90 +1,234 @@
 ﻿{% extends "base.html" %}
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1>Dashboard</h1>
-    <p class="muted">Clean V3 demo: AI Attendance + Behavior Monitoring.</p>
+
+{% set total_students = summary.total_students|default(0) %}
+{% set present_count = summary.present|default(0) %}
+{% set late_count = summary.late|default(0) %}
+{% set absent_count = summary.absent|default(0) %}
+{% set model_ready = face_model is defined and face_model.trained|default(false) %}
+
+<section class="dashboard-hero">
+  <div class="hero-copy">
+    <span class="hero-kicker">Smart Classroom AI V3</span>
+    <h1>Classroom Control Dashboard</h1>
+    <p>
+      A clean demo panel for AI attendance, face recognition, behavior candidate review,
+      and Raspberry Pi classroom deployment.
+    </p>
+
+    <div class="hero-actions">
+      <a class="action-btn" href="/ai-monitoring">Start AI Monitoring</a>
+      <a class="action-btn secondary" href="/training">Train Face Model</a>
+      <a class="action-btn secondary" href="/attendance">View Attendance</a>
+      <form method="post" action="/demo/reset" class="inline-form">
+        <button class="danger" type="submit">Reset Demo</button>
+      </form>
+    </div>
   </div>
 
-<div class="quick-actions">
-  <a class="action-btn" href="/students">Manage Students</a>
-  <a class="action-btn secondary" href="/sessions">Manage Sessions</a>
-  <a class="action-btn secondary" href="/attendance">View Attendance</a>
-  <a class="action-btn" href="/training">Train AI Model</a>
-  <a class="action-btn" href="/ai-monitoring">Start AI Monitoring</a>
-  <a class="action-btn warning" href="/system-status">System Status</a>
-</div>
-
-
-
-
-
-
-
-
-
-
-  <form method="post" action="/demo/reset" onsubmit="return confirm('Reset demo attendance and create a fresh session? Students and face model will be kept.');">
-    <button class="danger-button">Reset Demo</button>
-  </form>
-</div>
-
-<section class="cards">
-  <div class="card"><span>Total Students</span><strong>{{ summary.total_students }}</strong></div>
-  <div class="card"><span>Present</span><strong>{{ summary.present }}</strong></div>
-  <div class="card"><span>Late</span><strong>{{ summary.late }}</strong></div>
-  <div class="card"><span>Absent</span><strong>{{ summary.absent }}</strong></div>
+  <div class="hero-status-card">
+    <div class="status-row">
+      <span>System</span>
+      <strong>Demo Ready</strong>
+    </div>
+    <div class="status-row">
+      <span>Face Model</span>
+      {% if model_ready %}
+        <strong class="good">Ready</strong>
+      {% else %}
+        <strong class="warn">Needs Training</strong>
+      {% endif %}
+    </div>
+    <div class="status-row">
+      <span>Pi Deployment</span>
+      <strong class="good">Prepared</strong>
+    </div>
+  </div>
 </section>
 
-<h2>Active Session</h2>
-{% if summary.session %}
-<div class="panel">
-  <div class="panel-header">
-    <div>
-      <strong>{{ summary.session.title }}</strong>
-      <p>{{ summary.session.class_name }} | {{ summary.session.subject }} | {{ summary.session.room }}</p>
-      <p>Start: {{ summary.session.start_time }}</p>
-      <p>Late after: {{ summary.session.late_time }}</p>
-      <p>Close: {{ summary.session.close_time }}</p>
-    </div>
-    <span class="status-pill status-success">Active</span>
+<section class="cards dashboard-stats">
+  <div class="card stat-card">
+    <span>Total Students</span>
+    <strong>{{ total_students }}</strong>
+    <small>Registered in demo database</small>
   </div>
-</div>
-{% else %}
-<div class="panel">
-  <p>No active session. Click Reset Demo to create a fresh demo session.</p>
-</div>
-{% endif %}
+  <div class="card stat-card">
+    <span>Present</span>
+    <strong>{{ present_count }}</strong>
+    <small>Recorded by attendance logic</small>
+  </div>
+  <div class="card stat-card">
+    <span>Late</span>
+    <strong>{{ late_count }}</strong>
+    <small>After late time threshold</small>
+  </div>
+  <div class="card stat-card">
+    <span>Absent</span>
+    <strong>{{ absent_count }}</strong>
+    <small>Created when session closes</small>
+  </div>
+</section>
 
-<h2>Demo Flow</h2>
-<div class="panel">
-  <ol>
-    <li>Click <strong>Reset Demo</strong> before presentation.</li>
-    <li>Go to <strong>AI Training</strong> if face model is not trained yet.</li>
-    <li>Go to <strong>AI Monitoring</strong>.</li>
-    <li>Start camera and click <strong>Analyze Once</strong> or <strong>Start AI Attendance</strong>.</li>
-    <li>Recognized students will be marked Present or Late automatically.</li>
-  </ol>
-</div>
-
-<h2>Recent Attendance</h2>
-<table>
-  <tr><th>Student</th><th>Status</th><th>Method</th><th>Time</th></tr>
-  {% for r in recent %}
-  <tr>
-    <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
-    <td>
-      {% if r.status == "present" %}
-        <span class="status-pill status-success">{{ r.status }}</span>
-      {% elif r.status == "late" %}
-        <span class="status-pill status-warning">{{ r.status }}</span>
+<section class="dashboard-grid">
+  <div class="panel active-session-panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Current Class</span>
+        <h2>Active Session</h2>
+      </div>
+      {% if active_session and active_session.is_active %}
+        <span class="status-pill status-success">Active</span>
       {% else %}
-        <span class="status-pill status-muted">{{ r.status }}</span>
+        <span class="status-pill status-warning">No Active Session</span>
       {% endif %}
-    </td>
-    <td>{{ r.method }}</td>
-    <td>{{ r.first_seen_time or "-" }}</td>
-  </tr>
-  {% endfor %}
-</table>
+    </div>
+
+    {% if active_session %}
+      <div class="session-title">{{ active_session.title }}</div>
+      <p class="muted">{{ active_session.class_name }} | {{ active_session.subject }} | {{ active_session.room }}</p>
+
+      <div class="session-times">
+        <div>
+          <span>Start</span>
+          <strong>{{ active_session.start_time }}</strong>
+        </div>
+        <div>
+          <span>Late After</span>
+          <strong>{{ active_session.late_time }}</strong>
+        </div>
+        <div>
+          <span>Close</span>
+          <strong>{{ active_session.close_time }}</strong>
+        </div>
+      </div>
+    {% else %}
+      <p class="muted">No active session found. Start or reset a demo session before presenting.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel readiness-panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Teacher Demo</span>
+        <h2>Readiness Checklist</h2>
+      </div>
+      <a class="small-link" href="/system-status">Full status</a>
+    </div>
+
+    <div class="checklist">
+      <div class="check-item ready">
+        <span></span>
+        <div>
+          <strong>Database connected</strong>
+          <p>Students, sessions, and attendance can be loaded.</p>
+        </div>
+      </div>
+
+      <div class="check-item ready">
+        <span></span>
+        <div>
+          <strong>Demo reset available</strong>
+          <p>Prepare a clean session before showing the system.</p>
+        </div>
+      </div>
+
+      <div class="check-item {% if model_ready %}ready{% else %}warning{% endif %}">
+        <span></span>
+        <div>
+          <strong>Face model</strong>
+          <p>{% if model_ready %}Model is trained and ready.{% else %}Train the model before final demo.{% endif %}</p>
+        </div>
+      </div>
+
+      <div class="check-item ready">
+        <span></span>
+        <div>
+          <strong>Raspberry Pi ready</strong>
+          <p>Pi 5 can be explained as classroom camera source.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Demo Flow</span>
+        <h2>Presentation Steps</h2>
+      </div>
+    </div>
+
+    <div class="demo-steps">
+      <div class="demo-step">
+        <span>01</span>
+        <div>
+          <strong>Reset Demo</strong>
+          <p>Start with a clean session and clean attendance state.</p>
+        </div>
+      </div>
+
+      <div class="demo-step">
+        <span>02</span>
+        <div>
+          <strong>Train Face Model</strong>
+          <p>Capture face images and train LBPH recognition model.</p>
+        </div>
+      </div>
+
+      <div class="demo-step">
+        <span>03</span>
+        <div>
+          <strong>Run AI Monitoring</strong>
+          <p>Show green face box, blue body candidate box, and auto attendance.</p>
+        </div>
+      </div>
+
+      <div class="demo-step">
+        <span>04</span>
+        <div>
+          <strong>Review Attendance</strong>
+          <p>Explain present, late, absent, and duplicate protection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Recent Records</span>
+        <h2>Attendance Preview</h2>
+      </div>
+      <a class="small-link" href="/attendance">Open</a>
+    </div>
+
+    {% if recent %}
+      <div class="recent-list">
+        {% for item in recent[:5] %}
+          <div class="recent-item">
+            <div>
+              <strong>
+                {% if item.student %}
+                  {{ item.student.student_code }} - {{ item.student.full_name }}
+                {% else %}
+                  Student Record
+                {% endif %}
+              </strong>
+              <p>{{ item.method }} | {{ item.first_seen_time }}</p>
+            </div>
+            <span class="status-pill status-info">{{ item.status }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <strong>No attendance records yet</strong>
+        <p>Start AI Monitoring and analyze a frame to create the first record.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
 {% endblock %}

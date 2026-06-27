@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.database import SessionLocal, init_db
 from app.routers import (
+    academics,
     ai_monitoring,
     attendance,
     camera,
@@ -34,6 +35,7 @@ app = FastAPI(title="Smart Classroom AI V3", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(dashboard.router)
+app.include_router(academics.router)
 app.include_router(students.router)
 app.include_router(sessions.router)
 app.include_router(attendance.router)
