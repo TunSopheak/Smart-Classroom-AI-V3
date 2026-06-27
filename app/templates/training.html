@@ -1,9 +1,10 @@
 ﻿{% extends "base.html" %}
 {% block content %}
+
 <div class="page-header">
   <div>
     <h1>AI Training Center</h1>
-    <p class="muted">Capture student face datasets and train the LBPH face recognition model.</p>
+    <p>Capture student face datasets, then train the LBPH face recognition model for attendance.</p>
   </div>
 
   {% if training_status.trained %}
@@ -13,11 +14,62 @@
   {% endif %}
 </div>
 
+<section class="cards">
+  <div class="card">
+    <span>Total Dataset Images</span>
+    <strong id="total-images">{{ training_status.total_dataset_images }}</strong>
+  </div>
+  <div class="card">
+    <span>Students in Dataset</span>
+    <strong>{{ training_status.student_counts|length }}</strong>
+  </div>
+  <div class="card">
+    <span>Model Status</span>
+    <strong>{% if training_status.trained %}Ready{% else %}Wait{% endif %}</strong>
+  </div>
+  <div class="card">
+    <span>Recommended</span>
+    <strong>10+</strong>
+  </div>
+</section>
+
+<section class="training-flow">
+  <div class="flow-step">
+    <span>01</span>
+    <div>
+      <strong>Select student</strong>
+      <p>Choose the student before capturing face images.</p>
+    </div>
+  </div>
+  <div class="flow-step">
+    <span>02</span>
+    <div>
+      <strong>Start camera</strong>
+      <p>Use a clear front-facing image with enough light.</p>
+    </div>
+  </div>
+  <div class="flow-step">
+    <span>03</span>
+    <div>
+      <strong>Capture dataset</strong>
+      <p>Capture 10 to 20 images per student for better recognition.</p>
+    </div>
+  </div>
+  <div class="flow-step">
+    <span>04</span>
+    <div>
+      <strong>Train model</strong>
+      <p>Train or retrain after dataset images are ready.</p>
+    </div>
+  </div>
+</section>
+
 <section class="grid">
   <div class="panel camera-panel">
-    <div class="panel-header">
+    <div class="panel-heading">
       <div>
-        <h2>Face Dataset Capture</h2>
+        <span class="section-label">Dataset Capture</span>
+        <h2>Student Face Capture</h2>
         <p id="camera-status" class="muted">Camera stopped. Select a student and start camera.</p>
       </div>
       <span id="camera-badge" class="status-pill status-muted">Stopped</span>
@@ -36,20 +88,21 @@
       <video id="camera-preview" autoplay muted playsinline></video>
     </div>
 
-    <div class="button-row">
+    <div class="button-row training-actions">
       <button id="start-camera">Start Camera</button>
       <button id="stop-camera" disabled>Stop Camera</button>
       <button id="capture-face" disabled>Capture Face Image</button>
     </div>
 
     <div id="training-message" class="note-box">
-      Tip: Face the camera clearly. Capture 10 to 20 images per student.
+      Tip: Face the camera clearly. Capture different angles slightly, but keep the face visible.
     </div>
   </div>
 
   <div class="panel">
-    <div class="panel-header">
+    <div class="panel-heading">
       <div>
+        <span class="section-label">Model</span>
         <h2>Model Training</h2>
         <p class="muted">Train after capturing student face images.</p>
       </div>
@@ -58,30 +111,60 @@
       </span>
     </div>
 
-    <div class="behavior-list">
-      <div><span>Total Dataset Images</span><strong id="total-images">{{ training_status.total_dataset_images }}</strong></div>
-      <div><span>Students in Dataset</span><strong>{{ training_status.student_counts|length }}</strong></div>
+    <div class="model-status-grid">
+      <div>
+        <span>Algorithm</span>
+        <strong>LBPH</strong>
+      </div>
+      <div>
+        <span>Dataset Images</span>
+        <strong>{{ training_status.total_dataset_images }}</strong>
+      </div>
+      <div>
+        <span>Students</span>
+        <strong>{{ training_status.student_counts|length }}</strong>
+      </div>
+      <div>
+        <span>Output</span>
+        <strong>YML + JSON</strong>
+      </div>
     </div>
 
     <button id="train-model" class="full-button">Train or Retrain Face Model</button>
 
     <div id="model-message" class="note-box">
-      Model output: models/face_model.yml and models/face_labels.json
+      Model output: <strong>models/face_model.yml</strong> and <strong>models/face_labels.json</strong>
     </div>
   </div>
 </section>
 
-<h2>Dataset Counts</h2>
-<table>
-  <tr><th>Student</th><th>Images</th><th>Dataset Folder</th></tr>
-  {% for item in training_status.students %}
-  <tr>
-    <td>{{ item.student_code }} - {{ item.student_name }}</td>
-    <td><span class="status-pill status-info">{{ item.image_count }}</span></td>
-    <td><code>{{ item.folder }}</code></td>
-  </tr>
-  {% endfor %}
-</table>
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Dataset Records</span>
+      <h2>Dataset Counts</h2>
+    </div>
+  </div>
+
+  {% if training_status.students %}
+    <div class="dataset-list">
+      {% for item in training_status.students %}
+      <article class="dataset-card">
+        <div>
+          <strong>{{ item.student_code }} - {{ item.student_name }}</strong>
+          <p>{{ item.folder }}</p>
+        </div>
+        <span class="status-pill status-info">{{ item.image_count }} images</span>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No dataset images yet</strong>
+      <p>Select a student, start the camera, then capture face images.</p>
+    </div>
+  {% endif %}
+</section>
 
 <script src="/static/js/training.js"></script>
 {% endblock %}

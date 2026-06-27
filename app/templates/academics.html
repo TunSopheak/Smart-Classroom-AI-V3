@@ -4,7 +4,7 @@
 <div class="page-header">
   <div>
     <h1>Academics & Schedule</h1>
-    <p>Manage class groups, subjects, student enrollment, and weekly schedules.</p>
+    <p>Build the real class structure before AI attendance: class group, subject, enrollment, and weekly schedule.</p>
   </div>
   <form method="post" action="/academics/seed-demo">
     <button type="submit">Seed Demo Academics</button>
@@ -30,159 +30,201 @@
   </div>
 </section>
 
-<section class="dashboard-grid">
-  <div class="panel">
-    <h2>Class Groups</h2>
-    <form method="post" action="/academics/classes" class="crud-form class-builder-form">
-      <div class="form-help">
-        Auto code example: <strong>CS-G27-Y3-M4</strong>
-      </div>
-
-      <input name="department" placeholder="Department, e.g. CS" value="CS" required>
-      <input name="generation" type="number" placeholder="Generation, e.g. 27" value="27" required>
-      <input name="year_level" type="number" placeholder="Year Level, e.g. 3" value="3" required>
-      <input name="section" placeholder="Class, e.g. M4" value="M4" required>
-      <input name="building" placeholder="Building, e.g. B" value="B" required>
-      <input name="room_number" placeholder="Room Number, e.g. 108" value="108" required>
-      <select name="shift">
-        <option value="Morning">Morning</option>
-        <option value="Afternoon">Afternoon</option>
-        <option value="Evening">Evening</option>
-      </select>
-
-      <button type="submit">Save Class Group</button>
-    </form>
-
-    <table class="compact-table">
-      <tr>
-        <th>Code</th>
-        <th>Name</th>
-        <th>Code</th>
-        <th>Generated Name</th>
-        <th>Shift</th>
-        <th>Room</th>
-      </tr>
-      {% for item in classes %}
-      <tr>
-        <td>{{ item.class_code }}</td>
-        <td>{{ item.class_name }}</td>
-        <td>{{ item.shift }}</td>
-        <td>{{ item.room }}</td>
-      </tr>
-      {% endfor %}
-    </table>
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Class Builder</span>
+      <h2>Class Groups</h2>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>Subjects</h2>
-    <form method="post" action="/academics/subjects" class="crud-form">
-      <div class="form-help">
-        Subject code is generated automatically, e.g. <strong>CN</strong> for Computer Network.
-      </div>
-      <input name="subject_name" placeholder="Subject Name, e.g. Computer Network" required>
-      <button type="submit">Save Subject</button>
-    </form>
+  <form method="post" action="/academics/classes" class="crud-form class-builder-form">
+    <div class="form-help">
+      Auto code example: <strong>CS-G27-Y3-M4</strong>. Fill real class information only.
+    </div>
 
-    <table class="compact-table">
-      <tr>
-        <th>Code</th>
-        <th>Name</th>
-      </tr>
-      {% for item in subjects %}
-      <tr>
-        <td>{{ item.subject_code }}</td>
-        <td>{{ item.subject_name }}</td>
-      </tr>
-      {% endfor %}
-    </table>
+    <input name="department" placeholder="Department, e.g. CS" value="CS" required>
+    <input name="generation" type="number" placeholder="Generation, e.g. 27" value="27" required>
+    <input name="year_level" type="number" placeholder="Year Level, e.g. 3" value="3" required>
+    <input name="section" placeholder="Class / Section, e.g. M4" value="M4" required>
+    <input name="building" placeholder="Building, e.g. B" value="B" required>
+    <input name="room_number" placeholder="Room Number, e.g. 108" value="108" required>
+    <select name="shift">
+      <option value="Morning">Morning</option>
+      <option value="Afternoon">Afternoon</option>
+      <option value="Evening">Evening</option>
+    </select>
+
+    <button type="submit">Save Class Group</button>
+  </form>
+
+  <div class="record-grid">
+    {% for item in classes %}
+    <article class="record-card">
+      <div class="record-top">
+        <div>
+          <strong>{{ item.class_code }}</strong>
+          <p>{{ item.class_name }}</p>
+        </div>
+        {% if item.is_active %}
+          <span class="status-pill status-success">Active</span>
+        {% else %}
+          <span class="status-pill status-muted">Inactive</span>
+        {% endif %}
+      </div>
+
+      <div class="record-meta">
+        <span>Department: <strong>{{ item.department or "CS" }}</strong></span>
+        <span>Generation: <strong>{{ item.generation or 27 }}</strong></span>
+        <span>Year: <strong>{{ item.year_level or 3 }}</strong></span>
+        <span>Class: <strong>{{ item.section or "M4" }}</strong></span>
+        <span>Room: <strong>{{ item.room }}</strong></span>
+        <span>Shift: <strong>{{ item.shift }}</strong></span>
+      </div>
+
+      <details class="edit-details">
+        <summary>Edit class group</summary>
+        <form method="post" action="/academics/classes/{{ item.id }}/update" class="crud-form class-builder-form compact-edit-form">
+          <input name="department" value="{{ item.department or 'CS' }}" required>
+          <input name="generation" type="number" value="{{ item.generation or 27 }}" required>
+          <input name="year_level" type="number" value="{{ item.year_level or 3 }}" required>
+          <input name="section" value="{{ item.section or 'M4' }}" required>
+          <input name="building" value="{{ item.building or 'B' }}" required>
+          <input name="room_number" value="{{ item.room_number or '108' }}" required>
+          <select name="shift">
+            <option value="Morning" {% if item.shift == "Morning" %}selected{% endif %}>Morning</option>
+            <option value="Afternoon" {% if item.shift == "Afternoon" %}selected{% endif %}>Afternoon</option>
+            <option value="Evening" {% if item.shift == "Evening" %}selected{% endif %}>Evening</option>
+          </select>
+          <button type="submit">Update Class</button>
+        </form>
+      </details>
+
+      <div class="record-actions">
+        {% if item.is_active %}
+          <form method="post" action="/academics/classes/{{ item.id }}/deactivate">
+            <button type="submit" class="secondary-button">Deactivate</button>
+          </form>
+        {% else %}
+          <form method="post" action="/academics/classes/{{ item.id }}/activate">
+            <button type="submit" class="secondary-button">Activate</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
   </div>
 </section>
 
 <section class="dashboard-grid">
   <div class="panel">
-    <h2>Student Enrollment</h2>
-    <p class="muted">Connect students to a class group.</p>
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Subjects</span>
+        <h2>Subject Catalog</h2>
+      </div>
+    </div>
 
-    <form method="post" action="/academics/enrollments" class="crud-form two-cols">
+    <form method="post" action="/academics/subjects" class="crud-form">
+      <div class="form-help">
+        Subject code is generated automatically. Example: <strong>Computer Network → CN</strong>.
+      </div>
+      <input name="subject_name" placeholder="Subject Name, e.g. Computer Network" required>
+      <button type="submit">Save Subject</button>
+    </form>
+
+    <div class="record-list">
+      {% for item in subjects %}
+      <article class="mini-record">
+        <div>
+          <strong>{{ item.subject_code }}</strong>
+          <p>{{ item.subject_name }}</p>
+        </div>
+
+        {% if item.is_active %}
+          <span class="status-pill status-success">Active</span>
+        {% else %}
+          <span class="status-pill status-muted">Inactive</span>
+        {% endif %}
+
+        <details class="edit-details">
+          <summary>Edit</summary>
+          <form method="post" action="/academics/subjects/{{ item.id }}/update" class="crud-form">
+            <input name="subject_name" value="{{ item.subject_name }}" required>
+            <button type="submit">Update Subject</button>
+          </form>
+        </details>
+
+        {% if item.is_active %}
+          <form method="post" action="/academics/subjects/{{ item.id }}/deactivate">
+            <button type="submit" class="secondary-button">Deactivate</button>
+          </form>
+        {% else %}
+          <form method="post" action="/academics/subjects/{{ item.id }}/activate">
+            <button type="submit" class="secondary-button">Activate</button>
+          </form>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-heading">
+      <div>
+        <span class="section-label">Enrollment</span>
+        <h2>Student to Class</h2>
+      </div>
+    </div>
+
+    <form method="post" action="/academics/enrollments" class="crud-form">
       <select name="student_id" required>
         <option value="">Select Student</option>
         {% for student in students %}
-          <option value="{{ student.id }}">{{ student.student_code }} - {{ student.full_name }}</option>
+          {% if student.status == "active" %}
+            <option value="{{ student.id }}">{{ student.student_code }} - {{ student.full_name }}</option>
+          {% endif %}
         {% endfor %}
       </select>
 
       <select name="class_group_id" required>
         <option value="">Select Class</option>
         {% for class_group in classes %}
-          <option value="{{ class_group.id }}">{{ class_group.class_code }} - {{ class_group.class_name }}</option>
+          {% if class_group.is_active %}
+            <option value="{{ class_group.id }}">{{ class_group.class_code }} - {{ class_group.room }}</option>
+          {% endif %}
         {% endfor %}
       </select>
 
       <button type="submit">Enroll Student</button>
     </form>
 
-    <table class="compact-table">
-      <tr>
-        <th>Student</th>
-        <th>Class</th>
-      </tr>
+    <div class="record-list">
       {% for item in enrollments %}
-      <tr>
-        <td>
-          {% if item.student %}
-            {{ item.student.student_code }} - {{ item.student.full_name }}
-          {% else %}
-            Student
-          {% endif %}
-        </td>
-        <td>
-          {% if item.class_group %}
-            {{ item.class_group.class_code }} - {{ item.class_group.class_name }}
-          {% else %}
-            Class
-          {% endif %}
-        </td>
-      </tr>
+      <article class="mini-record enrollment-record">
+        <div>
+          <strong>
+            {% if item.student %}
+              {{ item.student.student_code }} - {{ item.student.full_name }}
+            {% else %}
+              Student
+            {% endif %}
+          </strong>
+          <p>
+            {% if item.class_group %}
+              {{ item.class_group.class_code }}
+            {% else %}
+              Class
+            {% endif %}
+          </p>
+        </div>
+
+        <form method="post" action="/academics/enrollments/{{ item.id }}/remove">
+          <button type="submit" class="secondary-button">Remove</button>
+        </form>
+      </article>
       {% endfor %}
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2>Weekly Schedule</h2>
-    <p class="muted">A schedule creates a real attendance session for AI monitoring.</p>
-
-    <form method="post" action="/academics/schedules" class="crud-form">
-      <select name="class_group_id" required>
-        <option value="">Select Class</option>
-        {% for class_group in classes %}
-          <option value="{{ class_group.id }}">{{ class_group.class_code }} - {{ class_group.class_name }}</option>
-        {% endfor %}
-      </select>
-
-      <select name="subject_id" required>
-        <option value="">Select Subject</option>
-        {% for subject in subjects %}
-          <option value="{{ subject.id }}">{{ subject.subject_code }} - {{ subject.subject_name }}</option>
-        {% endfor %}
-      </select>
-
-      <select name="day_of_week" required>
-        {% for day in day_names %}
-          <option value="{{ loop.index0 }}">{{ day }}</option>
-        {% endfor %}
-      </select>
-
-      <input name="start_time" type="time" required>
-      <input name="late_time" type="time" required>
-      <input name="end_time" type="time" required>
-      <input name="room" placeholder="Room, e.g. Demo Room">
-
-      <button type="submit">Save Schedule</button>
-    </form>
-
-    <form method="post" action="/academics/generate-today-session" class="inline-form">
-      <button type="submit" class="secondary-button">Generate Today Session</button>
-    </form>
+    </div>
   </div>
 </section>
 
@@ -190,34 +232,125 @@
   <div class="panel-heading">
     <div>
       <span class="section-label">Weekly Timetable</span>
-      <h2>Schedules</h2>
+      <h2>Weekly Schedule</h2>
     </div>
+    <form method="post" action="/academics/generate-today-session">
+      <button type="submit" class="secondary-button">Generate Today Session</button>
+    </form>
   </div>
 
-  <table>
-    <tr>
-      <th>Day</th>
-      <th>Class</th>
-      <th>Subject</th>
-      <th>Time</th>
-      <th>Room</th>
-      <th>Action</th>
-    </tr>
+  <form method="post" action="/academics/schedules" class="crud-form schedule-create-form">
+    <select name="class_group_id" required>
+      <option value="">Select Class</option>
+      {% for class_group in classes %}
+        {% if class_group.is_active %}
+          <option value="{{ class_group.id }}">{{ class_group.class_code }} - {{ class_group.room }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+
+    <select name="subject_id" required>
+      <option value="">Select Subject</option>
+      {% for subject in subjects %}
+        {% if subject.is_active %}
+          <option value="{{ subject.id }}">{{ subject.subject_code }} - {{ subject.subject_name }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+
+    <select name="day_of_week" required>
+      {% for day in day_names %}
+        <option value="{{ loop.index0 }}">{{ day }}</option>
+      {% endfor %}
+    </select>
+
+    <input name="start_time" type="time" required>
+    <input name="late_time" type="time" required>
+    <input name="end_time" type="time" required>
+    <input name="room" placeholder="Room optional, blank = class room">
+
+    <button type="submit">Save Schedule</button>
+  </form>
+
+  <div class="schedule-list">
     {% for item in schedules %}
-    <tr>
-      <td>{{ day_names[item.day_of_week] }}</td>
-      <td>{{ item.class_group.class_name }}</td>
-      <td>{{ item.subject.subject_name }}</td>
-      <td>{{ item.start_time }} - {{ item.end_time }}</td>
-      <td>{{ item.room }}</td>
-      <td>
-        <form method="post" action="/academics/schedules/{{ item.id }}/generate-session" class="inline-form">
+    <article class="schedule-card">
+      <div class="record-top">
+        <div>
+          <strong>
+            {% if item.class_group %}{{ item.class_group.class_code }}{% else %}Class{% endif %}
+            |
+            {% if item.subject %}{{ item.subject.subject_name }}{% else %}Subject{% endif %}
+          </strong>
+          <p>{{ day_names[item.day_of_week] }} | {{ item.start_time.strftime('%H:%M') }} - {{ item.end_time.strftime('%H:%M') }} | {{ item.room }}</p>
+        </div>
+
+        {% if item.is_active %}
+          <span class="status-pill status-success">Active</span>
+        {% else %}
+          <span class="status-pill status-muted">Disabled</span>
+        {% endif %}
+      </div>
+
+      <div class="record-meta">
+        <span>Start: <strong>{{ item.start_time.strftime('%H:%M') }}</strong></span>
+        <span>Late: <strong>{{ item.late_time.strftime('%H:%M') }}</strong></span>
+        <span>End: <strong>{{ item.end_time.strftime('%H:%M') }}</strong></span>
+        <span>Room: <strong>{{ item.room }}</strong></span>
+      </div>
+
+      <details class="edit-details">
+        <summary>Edit schedule</summary>
+        <form method="post" action="/academics/schedules/{{ item.id }}/update" class="crud-form schedule-create-form compact-edit-form">
+          <select name="class_group_id" required>
+            {% for class_group in classes %}
+              <option value="{{ class_group.id }}" {% if item.class_group_id == class_group.id %}selected{% endif %}>
+                {{ class_group.class_code }}
+              </option>
+            {% endfor %}
+          </select>
+
+          <select name="subject_id" required>
+            {% for subject in subjects %}
+              <option value="{{ subject.id }}" {% if item.subject_id == subject.id %}selected{% endif %}>
+                {{ subject.subject_code }} - {{ subject.subject_name }}
+              </option>
+            {% endfor %}
+          </select>
+
+          <select name="day_of_week" required>
+            {% for day in day_names %}
+              <option value="{{ loop.index0 }}" {% if item.day_of_week == loop.index0 %}selected{% endif %}>{{ day }}</option>
+            {% endfor %}
+          </select>
+
+          <input name="start_time" type="time" value="{{ item.start_time.strftime('%H:%M') }}" required>
+          <input name="late_time" type="time" value="{{ item.late_time.strftime('%H:%M') }}" required>
+          <input name="end_time" type="time" value="{{ item.end_time.strftime('%H:%M') }}" required>
+          <input name="room" value="{{ item.room }}">
+
+          <button type="submit">Update Schedule</button>
+        </form>
+      </details>
+
+      <div class="record-actions">
+        <form method="post" action="/academics/schedules/{{ item.id }}/generate-session">
           <button type="submit">Create Session</button>
         </form>
-      </td>
-    </tr>
+
+        {% if item.is_active %}
+          <form method="post" action="/academics/schedules/{{ item.id }}/disable">
+            <button type="submit" class="secondary-button">Disable</button>
+          </form>
+        {% else %}
+          <form method="post" action="/academics/schedules/{{ item.id }}/activate">
+            <button type="submit" class="secondary-button">Activate</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
     {% endfor %}
-  </table>
+  </div>
 </section>
 
 {% endblock %}

@@ -1,22 +1,108 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<h1>Students</h1>
 
-<form method="post" class="form-row">
-  <input name="student_code" placeholder="STU0006" required>
-  <input name="first_name" placeholder="First name" required>
-  <input name="last_name" placeholder="Last name" required>
-  <button>Add Student</button>
-</form>
+<div class="page-header">
+  <div>
+    <h1>Students</h1>
+    <p>Manage classroom students. Student code is generated automatically.</p>
+  </div>
+  <span class="status-pill status-info">Next: {{ next_student_code }}</span>
+</div>
 
-<table>
-  <tr><th>Code</th><th>Name</th><th>Status</th></tr>
-  {% for s in students %}
-  <tr>
-    <td>{{ s.student_code }}</td>
-    <td>{{ s.full_name }}</td>
-    <td>{{ s.status }}</td>
-  </tr>
-  {% endfor %}
-</table>
+<section class="cards">
+  <div class="card">
+    <span>Total Students</span>
+    <strong>{{ total_students }}</strong>
+  </div>
+  <div class="card">
+    <span>Active Students</span>
+    <strong>{{ active_students }}</strong>
+  </div>
+  <div class="card">
+    <span>Code Format</span>
+    <strong>STU</strong>
+  </div>
+  <div class="card">
+    <span>Mode</span>
+    <strong>CRUD</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Add Student</span>
+      <h2>New Student</h2>
+    </div>
+  </div>
+
+  <form method="post" action="/students" class="crud-form student-create-form">
+    <div class="form-help">
+      Student code will be generated automatically. Example: <strong>{{ next_student_code }}</strong>
+    </div>
+
+    <input name="first_name" placeholder="First name, e.g. Tun" required>
+    <input name="last_name" placeholder="Last name, e.g. Sopheak" required>
+
+    <select name="status">
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+
+    <button type="submit">Add Student</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Student List</span>
+      <h2>Records</h2>
+    </div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Code</th>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+
+    {% for student in students %}
+    <tr>
+      <form method="post" action="/students/{{ student.id }}/update">
+        <td><strong>{{ student.student_code }}</strong></td>
+        <td>
+          <input name="first_name" value="{{ student.first_name }}" required>
+        </td>
+        <td>
+          <input name="last_name" value="{{ student.last_name }}" required>
+        </td>
+        <td>
+          <select name="status">
+            <option value="active" {% if student.status == "active" %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if student.status == "inactive" %}selected{% endif %}>Inactive</option>
+          </select>
+        </td>
+        <td class="table-actions">
+          <button type="submit">Update</button>
+      </form>
+
+      {% if student.status == "active" %}
+        <form method="post" action="/students/{{ student.id }}/deactivate" class="inline-form">
+          <button type="submit" class="secondary-button">Deactivate</button>
+        </form>
+      {% else %}
+        <form method="post" action="/students/{{ student.id }}/activate" class="inline-form">
+          <button type="submit" class="secondary-button">Activate</button>
+        </form>
+      {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+
 {% endblock %}

@@ -1,9 +1,10 @@
 ﻿{% extends "base.html" %}
 {% block content %}
+
 <div class="page-header">
   <div>
     <h1>AI Monitoring</h1>
-    <p class="muted">Computer camera preview with face recognition attendance and behavior candidate monitoring.</p>
+    <p>Run classroom camera monitoring for face recognition attendance and behavior candidate review.</p>
   </div>
 
   {% if face_model.trained %}
@@ -20,10 +21,11 @@
   <div class="card"><span>Absent</span><strong>{{ summary.absent }}</strong></div>
 </section>
 
-<section class="grid">
-  <div class="panel camera-panel">
-    <div class="panel-header">
+<section class="monitoring-layout">
+  <div class="panel camera-panel monitoring-camera-panel">
+    <div class="panel-heading">
       <div>
+        <span class="section-label">Live Camera</span>
         <h2>Computer Camera</h2>
         <p id="camera-status" class="muted">Camera stopped. Click Start Camera.</p>
       </div>
@@ -35,29 +37,27 @@
       <canvas id="detection-overlay"></canvas>
     </div>
 
-    <div class="button-row">
+    <div class="button-row monitoring-actions">
       <button id="start-camera">Start Camera</button>
       <button id="stop-camera" disabled>Stop Camera</button>
-    </div>
-
-    <div class="button-row">
       <button id="analyze-once" disabled>Analyze Once</button>
       <button id="start-ai" disabled>Start AI Monitoring</button>
       <button id="stop-ai" disabled>Stop AI Monitoring</button>
     </div>
 
-    <div class="note-box">
-      <strong>Demo note:</strong>
-      Green box = recognized face. Blue box = person/body candidate.
+    <div class="legend-box">
+      <div><span class="legend-dot green"></span> Green box = recognized face</div>
+      <div><span class="legend-dot blue"></span> Blue box = person/body candidate</div>
     </div>
   </div>
 
-  <div class="stack">
+  <div class="monitoring-side">
     <div class="panel">
-      <div class="panel-header">
+      <div class="panel-heading">
         <div>
-          <h2>Face Recognition Attendance</h2>
-          <p class="muted">Recognized trained students will be recorded automatically.</p>
+          <span class="section-label">Attendance AI</span>
+          <h2>Face Recognition</h2>
+          <p class="muted">Recognized trained students are recorded automatically.</p>
         </div>
         <span id="face-ai-badge" class="status-pill {% if face_model.trained %}status-success{% else %}status-warning{% endif %}">
           {% if face_model.trained %}Model Ready{% else %}Not Trained{% endif %}
@@ -76,41 +76,84 @@
     </div>
 
     <div class="panel">
-      <div class="panel-header">
+      <div class="panel-heading">
         <div>
+          <span class="section-label">Teacher Review</span>
           <h2>Behavior Monitoring</h2>
           <p class="muted">Candidate review only, not final student judgment.</p>
         </div>
         <span id="behavior-badge" class="status-pill status-warning">AI Not Started</span>
       </div>
 
-      <div class="behavior-list">
-        <div><span>Person Count</span><strong id="person-count">{{ behavior.person_count }}</strong></div>
-        <div><span>Phone-use Candidates</span><strong id="phone-candidates">{{ behavior.phone_candidates }}</strong></div>
-        <div><span>Looking-away Candidates</span><strong id="looking-away-candidates">{{ behavior.looking_away_candidates }}</strong></div>
-        <div><span>Head-down Candidates</span><strong id="head-down-candidates">{{ behavior.head_down_candidates }}</strong></div>
+      <div class="behavior-grid">
+        <div>
+          <span>Person Count</span>
+          <strong id="person-count">{{ behavior.person_count }}</strong>
+        </div>
+        <div>
+          <span>Phone-use</span>
+          <strong id="phone-candidates">{{ behavior.phone_candidates }}</strong>
+        </div>
+        <div>
+          <span>Looking-away</span>
+          <strong id="looking-away-candidates">{{ behavior.looking_away_candidates }}</strong>
+        </div>
+        <div>
+          <span>Head-down</span>
+          <strong id="head-down-candidates">{{ behavior.head_down_candidates }}</strong>
+        </div>
       </div>
 
       <div id="behavior-system-status" class="note-box">
-        Behavior AI is ready as candidate review support.
+        Behavior AI is a candidate review support tool for teachers.
       </div>
     </div>
   </div>
 </section>
 
-<h2>Recent Recognitions</h2>
-<table>
-  <tr><th>Student</th><th>Status</th><th>Method</th><th>Time</th></tr>
-  {% for r in recent %}
-  <tr>
-    <td>{{ r.student.student_code }} - {{ r.student.full_name }}</td>
-    <td><span class="status-pill status-warning">{{ r.status }}</span></td>
-    <td>{{ r.method }}</td>
-    <td>{{ r.first_seen_time or "-" }}</td>
-  </tr>
-  {% endfor %}
-</table>
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Recent AI Attendance</span>
+      <h2>Recent Recognitions</h2>
+    </div>
+    <a class="small-link" href="/attendance">View attendance</a>
+  </div>
+
+  {% if recent %}
+    <div class="recent-list">
+      {% for r in recent %}
+      <div class="recent-item">
+        <div>
+          <strong>
+            {% if r.student %}
+              {{ r.student.student_code }} - {{ r.student.full_name }}
+            {% else %}
+              Student Record
+            {% endif %}
+          </strong>
+          <p>{{ r.method }} | {{ r.first_seen_time or "-" }}</p>
+        </div>
+
+        {% if r.status == "present" %}
+          <span class="status-pill status-success">Present</span>
+        {% elif r.status == "late" %}
+          <span class="status-pill status-warning">Late</span>
+        {% elif r.status == "absent" %}
+          <span class="status-pill status-danger">Absent</span>
+        {% else %}
+          <span class="status-pill status-muted">{{ r.status }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No recent recognitions yet</strong>
+      <p>Start camera, run AI Monitoring, then face recognition results will appear here.</p>
+    </div>
+  {% endif %}
+</section>
 
 <script src="/static/js/camera.js?v=5"></script>
 {% endblock %}
-

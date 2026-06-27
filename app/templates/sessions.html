@@ -1,22 +1,156 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
-<h1>Sessions</h1>
 
-<table>
-  <tr><th>Title</th><th>Class</th><th>Subject</th><th>Room</th><th>Time</th><th>Status</th><th>Action</th></tr>
-  {% for s in sessions %}
-  <tr>
-    <td>{{ s.title }}</td>
-    <td>{{ s.class_name }}</td>
-    <td>{{ s.subject }}</td>
-    <td>{{ s.room }}</td>
-    <td>{{ s.start_time }} - {{ s.close_time }}</td>
-    <td>{{ "Active" if s.is_active else "Closed" }}</td>
-    <td>
-      <form method="post" action="/sessions/{{ s.id }}/start" class="inline"><button>Start</button></form>
-      <form method="post" action="/sessions/{{ s.id }}/close" class="inline"><button>Close + Mark Absent</button></form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+<div class="page-header">
+  <div>
+    <h1>Sessions</h1>
+    <p>Sessions are real class meetings. They should come from weekly schedules before AI attendance starts.</p>
+  </div>
+
+  <form method="post" action="/academics/generate-today-session">
+    <button type="submit">Generate Today Session</button>
+  </form>
+</div>
+
+<section class="cards">
+  <div class="card">
+    <span>Total Sessions</span>
+    <strong>{{ total_sessions }}</strong>
+  </div>
+  <div class="card">
+    <span>Active</span>
+    <strong>{{ active_count }}</strong>
+  </div>
+  <div class="card">
+    <span>Closed</span>
+    <strong>{{ closed_count }}</strong>
+  </div>
+  <div class="card">
+    <span>Best Source</span>
+    <strong>Schedule</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Current Class Meeting</span>
+      <h2>Active Session</h2>
+    </div>
+    <a class="small-link" href="/academics">Manage Schedule</a>
+  </div>
+
+  {% if active_sessions %}
+    <div class="session-card-grid">
+      {% for s in active_sessions %}
+      <article class="session-card active-session-card">
+        <div class="record-top">
+          <div>
+            <strong>{{ s.title }}</strong>
+            <p>{{ s.class_name }} | {{ s.subject }} | {{ s.room }}</p>
+          </div>
+          <span class="status-pill status-success">Active</span>
+        </div>
+
+        <div class="session-source-row">
+          {% if s.source == "weekly_schedule" %}
+            <span class="source-pill schedule-source">Weekly Schedule</span>
+          {% else %}
+            <span class="source-pill manual-source">Manual Demo</span>
+          {% endif %}
+          <span>AI attendance will record into this active session.</span>
+        </div>
+
+        <div class="record-meta">
+          <span>Start: <strong>{{ s.start_time }}</strong></span>
+          <span>Late After: <strong>{{ s.late_time }}</strong></span>
+          <span>Close: <strong>{{ s.close_time }}</strong></span>
+        </div>
+
+        <div class="record-actions">
+          <a class="action-btn" href="/ai-monitoring">Open AI Monitoring</a>
+          <form method="post" action="/sessions/{{ s.id }}/close">
+            <button type="submit" class="secondary-button">Close + Mark Absent</button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No active session</strong>
+      <p>Generate today session from Weekly Schedule, or use Demo Reset from Dashboard.</p>
+      <div class="empty-actions">
+        <form method="post" action="/academics/generate-today-session">
+          <button type="submit">Generate Today Session</button>
+        </form>
+        <a class="action-btn secondary" href="/academics">Open Schedule</a>
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Session History</span>
+      <h2>All Sessions</h2>
+    </div>
+  </div>
+
+  {% if sessions %}
+    <div class="session-list">
+      {% for s in sessions %}
+      <article class="session-row-card">
+        <div class="session-main">
+          <div>
+            <strong>{{ s.title }}</strong>
+            <p>{{ s.class_name }} | {{ s.subject }} | {{ s.room }}</p>
+          </div>
+
+          <div class="session-badges">
+            {% if s.is_active %}
+              <span class="status-pill status-success">Active</span>
+            {% else %}
+              <span class="status-pill status-muted">Closed</span>
+            {% endif %}
+
+            {% if s.source == "weekly_schedule" %}
+              <span class="source-pill schedule-source">Weekly Schedule</span>
+            {% else %}
+              <span class="source-pill manual-source">Manual Demo</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="session-timeline">
+          <span>Start <strong>{{ s.start_time }}</strong></span>
+          <span>Late <strong>{{ s.late_time }}</strong></span>
+          <span>Close <strong>{{ s.close_time }}</strong></span>
+        </div>
+
+        <div class="record-actions">
+          {% if not s.is_active %}
+            <form method="post" action="/sessions/{{ s.id }}/start">
+              <button type="submit">Start</button>
+            </form>
+          {% endif %}
+
+          {% if s.is_active %}
+            <form method="post" action="/sessions/{{ s.id }}/close">
+              <button type="submit" class="secondary-button">Close + Mark Absent</button>
+            </form>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <strong>No sessions yet</strong>
+      <p>Create a weekly schedule, then generate a session for today.</p>
+    </div>
+  {% endif %}
+</section>
+
 {% endblock %}

@@ -61,12 +61,72 @@ def create_class_group(
     return RedirectResponse(url="/academics", status_code=303)
 
 
+@router.post("/classes/{class_group_id}/update")
+def update_class_group(
+    class_group_id: int,
+    department: str = Form("CS"),
+    generation: int = Form(27),
+    year_level: int = Form(3),
+    section: str = Form("M4"),
+    building: str = Form("B"),
+    room_number: str = Form("108"),
+    shift: str = Form("Morning"),
+    db: Session = Depends(get_db),
+):
+    academic_service.update_class_group(
+        db,
+        class_group_id=class_group_id,
+        department=department,
+        generation=generation,
+        year_level=year_level,
+        section=section,
+        building=building,
+        room_number=room_number,
+        shift=shift,
+    )
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/classes/{class_group_id}/deactivate")
+def deactivate_class_group(class_group_id: int, db: Session = Depends(get_db)):
+    academic_service.set_class_group_active(db, class_group_id, False)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/classes/{class_group_id}/activate")
+def activate_class_group(class_group_id: int, db: Session = Depends(get_db)):
+    academic_service.set_class_group_active(db, class_group_id, True)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
 @router.post("/subjects")
 def create_subject(
     subject_name: str = Form(...),
     db: Session = Depends(get_db),
 ):
     academic_service.save_subject(db, subject_name=subject_name)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/subjects/{subject_id}/update")
+def update_subject(
+    subject_id: int,
+    subject_name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    academic_service.update_subject(db, subject_id=subject_id, subject_name=subject_name)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/subjects/{subject_id}/deactivate")
+def deactivate_subject(subject_id: int, db: Session = Depends(get_db)):
+    academic_service.set_subject_active(db, subject_id, False)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/subjects/{subject_id}/activate")
+def activate_subject(subject_id: int, db: Session = Depends(get_db)):
+    academic_service.set_subject_active(db, subject_id, True)
     return RedirectResponse(url="/academics", status_code=303)
 
 
@@ -77,6 +137,12 @@ def create_enrollment(
     db: Session = Depends(get_db),
 ):
     academic_service.enroll_student(db, student_id, class_group_id)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/enrollments/{enrollment_id}/remove")
+def remove_enrollment(enrollment_id: int, db: Session = Depends(get_db)):
+    academic_service.remove_enrollment(db, enrollment_id)
     return RedirectResponse(url="/academics", status_code=303)
 
 
@@ -101,6 +167,44 @@ def create_schedule(
         end_time=_parse_time(end_time),
         room=room,
     )
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/schedules/{schedule_id}/update")
+def update_schedule(
+    schedule_id: int,
+    class_group_id: int = Form(...),
+    subject_id: int = Form(...),
+    day_of_week: int = Form(...),
+    start_time: str = Form(...),
+    late_time: str = Form(...),
+    end_time: str = Form(...),
+    room: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    academic_service.update_weekly_schedule(
+        db,
+        schedule_id=schedule_id,
+        class_group_id=class_group_id,
+        subject_id=subject_id,
+        day_of_week=day_of_week,
+        start_time=_parse_time(start_time),
+        late_time=_parse_time(late_time),
+        end_time=_parse_time(end_time),
+        room=room,
+    )
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/schedules/{schedule_id}/disable")
+def disable_schedule(schedule_id: int, db: Session = Depends(get_db)):
+    academic_service.set_schedule_active(db, schedule_id, False)
+    return RedirectResponse(url="/academics", status_code=303)
+
+
+@router.post("/schedules/{schedule_id}/activate")
+def activate_schedule(schedule_id: int, db: Session = Depends(get_db)):
+    academic_service.set_schedule_active(db, schedule_id, True)
     return RedirectResponse(url="/academics", status_code=303)
 
 

@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import inspect, text
@@ -445,3 +445,182 @@ def academic_summary(db: Session) -> dict:
         "enrollments_count": db.query(Enrollment).count(),
         "schedules_count": db.query(WeeklySchedule).count(),
     }
+
+
+# -------------------------------
+# Stage 8.2B Safe CRUD Helpers
+# -------------------------------
+
+def get_class_group_by_id(db: Session, class_group_id: int):
+    ensure_academic_schema(db)
+    return db.query(ClassGroup).filter(ClassGroup.id == class_group_id).first()
+
+
+def get_subject_by_id(db: Session, subject_id: int):
+    ensure_academic_schema(db)
+    return db.query(Subject).filter(Subject.id == subject_id).first()
+
+
+def get_schedule_by_id(db: Session, schedule_id: int):
+    ensure_academic_schema(db)
+    return db.query(WeeklySchedule).filter(WeeklySchedule.id == schedule_id).first()
+
+
+def update_class_group(
+    db: Session,
+    class_group_id: int,
+    department: str = "CS",
+    generation: int = 27,
+    year_level: int = 3,
+    section: str = "M4",
+    building: str = "B",
+    room_number: str = "108",
+    shift: str = "Morning",
+):
+    ensure_academic_schema(db)
+
+    item = get_class_group_by_id(db, class_group_id)
+    if not item:
+        return None
+
+    new_code = generate_class_code(department, generation, year_level, section)
+    existing = (
+        db.query(ClassGroup)
+        .filter(ClassGroup.class_code == new_code, ClassGroup.id != class_group_id)
+        .first()
+    )
+
+    if existing:
+        return item
+
+    item.class_code = new_code
+    item.class_name = generate_class_name(department, generation, year_level, section)
+    item.department = _clean_code(department or "CS")
+    item.generation = int(generation)
+    item.year_level = int(year_level)
+    item.section = _clean_code(section or "M4")
+    item.building = _clean_code(building or "B")
+    item.room_number = _clean_code(room_number or "108")
+    item.shift = shift.strip() or "Morning"
+    item.room = generate_room(building, room_number)
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def set_class_group_active(db: Session, class_group_id: int, is_active: bool):
+    item = get_class_group_by_id(db, class_group_id)
+    if not item:
+        return None
+
+    item.is_active = is_active
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def _generate_subject_code_excluding(db: Session, subject_name: str, subject_id: int) -> str:
+    base = _subject_acronym(subject_name)
+    if len(base) < 2:
+        base = "SUB"
+
+    existing_codes = {
+        row.subject_code
+        for row in db.query(Subject)
+        .filter(Subject.subject_code.like(f"{base}%"), Subject.id != subject_id)
+        .all()
+    }
+
+    if base not in existing_codes:
+        return base
+
+    number = 2
+    while f"{base}{number}" in existing_codes:
+        number += 1
+
+    return f"{base}{number}"
+
+
+def update_subject(db: Session, subject_id: int, subject_name: str):
+    ensure_academic_schema(db)
+
+    item = get_subject_by_id(db, subject_id)
+    if not item:
+        return None
+
+    subject_name = subject_name.strip()
+    item.subject_name = subject_name
+    item.subject_code = _generate_subject_code_excluding(db, subject_name, subject_id)
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def set_subject_active(db: Session, subject_id: int, is_active: bool):
+    item = get_subject_by_id(db, subject_id)
+    if not item:
+        return None
+
+    item.is_active = is_active
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def remove_enrollment(db: Session, enrollment_id: int):
+    ensure_academic_schema(db)
+
+    item = db.query(Enrollment).filter(Enrollment.id == enrollment_id).first()
+    if not item:
+        return None
+
+    db.delete(item)
+    db.commit()
+    return item
+
+
+def update_weekly_schedule(
+    db: Session,
+    schedule_id: int,
+    class_group_id: int,
+    subject_id: int,
+    day_of_week: int,
+    start_time,
+    late_time,
+    end_time,
+    room: str = "",
+):
+    ensure_academic_schema(db)
+
+    item = get_schedule_by_id(db, schedule_id)
+    if not item:
+        return None
+
+    class_group = db.query(ClassGroup).filter(ClassGroup.id == class_group_id).first()
+    final_room = room.strip() if room and room.strip() else (class_group.room if class_group else "B108")
+
+    item.class_group_id = int(class_group_id)
+    item.subject_id = int(subject_id)
+    item.day_of_week = int(day_of_week)
+    item.start_time = start_time
+    item.late_time = late_time
+    item.end_time = end_time
+    item.room = final_room
+
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def set_schedule_active(db: Session, schedule_id: int, is_active: bool):
+    item = get_schedule_by_id(db, schedule_id)
+    if not item:
+        return None
+
+    item.is_active = is_active
+    db.commit()
+    db.refresh(item)
+    return item
+
