@@ -316,6 +316,8 @@ def generate_session_from_schedule(
         return None
 
     today = datetime.now().date()
+    today_start = datetime.combine(today, datetime.min.time())
+    tomorrow_start = today_start + timedelta(days=1)
 
     start_dt = datetime.combine(today, schedule.start_time)
     late_dt = datetime.combine(today, schedule.late_time)
@@ -323,6 +325,38 @@ def generate_session_from_schedule(
 
     if close_dt <= start_dt:
         close_dt += timedelta(days=1)
+
+    existing_session = (
+        db.query(ClassSession)
+        .filter(
+            ClassSession.schedule_id == schedule.id,
+            ClassSession.start_time >= today_start,
+            ClassSession.start_time < tomorrow_start,
+        )
+        .order_by(ClassSession.id.desc())
+        .first()
+    )
+
+    if existing_session:
+        db.query(ClassSession).filter(
+            ClassSession.is_active == True,
+            ClassSession.id != existing_session.id,
+        ).update({"is_active": False})
+
+        existing_session.title = generate_session_title(schedule)
+        existing_session.class_name = schedule.class_group.class_code
+        existing_session.subject = schedule.subject.subject_name
+        existing_session.room = schedule.room or schedule.class_group.room
+        existing_session.start_time = start_dt
+        existing_session.late_time = late_dt
+        existing_session.close_time = close_dt
+        existing_session.is_active = True
+        existing_session.source = "weekly_schedule"
+        existing_session.schedule_id = schedule.id
+
+        db.commit()
+        db.refresh(existing_session)
+        return existing_session
 
     db.query(ClassSession).filter(ClassSession.is_active == True).update(
         {"is_active": False}
@@ -337,19 +371,14 @@ def generate_session_from_schedule(
         late_time=late_dt,
         close_time=close_dt,
         is_active=True,
+        source="weekly_schedule",
+        schedule_id=schedule.id,
     )
-
-    if hasattr(session, "source"):
-        session.source = "weekly_schedule"
-
-    if hasattr(session, "schedule_id"):
-        session.schedule_id = schedule.id
 
     db.add(session)
     db.commit()
     db.refresh(session)
     return session
-
 
 def generate_today_session(db: Session) -> Optional[ClassSession]:
     ensure_academic_schema(db)
