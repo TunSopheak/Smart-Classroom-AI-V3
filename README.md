@@ -1,4 +1,4 @@
-﻿# Smart Classroom AI V3
+# Smart Classroom AI V3
 
 A clean demo-ready Smart Classroom system using AI face recognition attendance and behavior monitoring candidate review.
 
@@ -102,3 +102,32 @@ Recommended deployment:
 - Behavior Monitoring currently uses candidate review, not final student judgment.
 - Body/person box is estimated from face position for demo safety.
 - Phone-use detection is planned as an optional advanced model.
+
+## Final Demo Highlights
+
+Smart Classroom AI V3 demonstrates a complete classroom monitoring workflow:
+
+- Academic schedule to active session workflow
+- Face recognition attendance
+- Student name displayed on AI frame box
+- Photo upload for face training dataset
+- YOLO-based phone-use candidate detection
+- Red alert frame for phone-use candidate
+- Snapshot evidence saved to Behavior Reports
+- Video evidence recording with AI frame boxes
+- Attendance and evidence review by session
+
+### Demo Flow
+
+1. Reset Demo
+2. Start AI Monitoring
+3. Recognize student face
+4. Detect phone-use candidate
+5. Save video evidence
+6. Review Behavior Reports
+7. Review Video Records
+8. Review Attendance
+
+### Important Note
+
+Behavior detection is a candidate alert for teacher review. The system does not automatically punish students or make final behavior judgments.
