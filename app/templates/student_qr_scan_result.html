@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="scan-shell">
+  <div class="scan-card">
+    <div class="scan-icon">QR</div>
+    <p class="eyebrow">QR Attendance Scan</p>
+
+    {% if result.ok and result.duplicate %}
+      <h1>Already Recorded</h1>
+      <div class="alert warning">
+        <strong>{{ result.student_name }}</strong>
+        <p>Attendance already exists for this active session by {{ result.method }}.</p>
+      </div>
+    {% elif result.ok %}
+      <h1>Attendance Recorded</h1>
+      <div class="alert success">
+        <strong>{{ result.student_name }}</strong>
+        <p>Status: {{ result.status }} | Method: QR | Session: {{ result.session_title }}</p>
+      </div>
+    {% else %}
+      <h1>Scan Failed</h1>
+      <div class="alert danger">
+        <strong>{{ student_code }}</strong>
+        <p>Reason: {{ result.reason }}</p>
+      </div>
+    {% endif %}
+
+    <div class="actions">
+      <a href="/students">Back to Students</a>
+      <a href="/attendance">View Attendance</a>
+      <a href="/attendance/qr-scanner">Open Scanner</a>
+    </div>
+
+    <p class="small-note">QR cards are backup attendance. Face recognition remains the primary method.</p>
+  </div>
+</section>
+
+<style>
+  .scan-shell {
+    min-height: calc(100vh - 80px);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+
+  .scan-card {
+    width: min(100%, 560px);
+    padding: 30px;
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.16), transparent 34%),
+      #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12);
+  }
+
+  .scan-icon {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    border-radius: 19px;
+    background: linear-gradient(135deg, #22d3ee, #2563eb);
+    color: #ffffff;
+    font-weight: 900;
+    box-shadow: 0 16px 34px rgba(37, 99, 235, 0.24);
+  }
+
+  .eyebrow {
+    margin: 18px 0 6px;
+    color: #0891b2;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0 0 18px;
+    font-size: clamp(30px, 5vw, 42px);
+    letter-spacing: -0.04em;
+  }
+
+  .alert {
+    padding: 16px 18px;
+    border-radius: 20px;
+  }
+
+  .alert strong {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .alert p {
+    margin: 0;
+  }
+
+  .success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
+  .danger {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+
+  .actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 14px;
+    background: #0f172a;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 900;
+  }
+
+  .actions a:first-child {
+    background: #0f766e;
+  }
+
+  .small-note {
+    margin: 16px 0 0;
+    color: #64748b;
+    font-size: 13px;
+  }
+</style>
+{% endblock %}

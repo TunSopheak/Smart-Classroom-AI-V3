@@ -7,3 +7,4 @@ opencv-contrib-python
 numpy
 pillow
 httpx2`nultralytics`n
+qrcode[pil]

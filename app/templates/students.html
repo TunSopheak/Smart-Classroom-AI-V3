@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <div class="page-header">
@@ -99,10 +99,28 @@
           <button type="submit" class="secondary-button">Activate</button>
         </form>
       {% endif %}
+
+        <a class="secondary-button qr-action" href="/students/{{ student.id }}/qr">View QR</a>
+        <a class="secondary-button qr-action" href="/students/{{ student.id }}/qr/download">Download QR</a>
         </td>
     </tr>
     {% endfor %}
   </table>
 </section>
+
+
+<style>
+  .qr-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 12px;
+    margin-top: 6px;
+    text-decoration: none;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+</style>
 
 {% endblock %}
