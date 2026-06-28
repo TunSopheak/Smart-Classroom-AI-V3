@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from app.routers import reports
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -51,3 +52,4 @@ app.include_router(ai_monitoring.router)
 app.include_router(camera.router)
 app.include_router(system_status.router)
 app.include_router(video_records.router)
+app.include_router(reports.router)
