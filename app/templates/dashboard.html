@@ -11,12 +11,13 @@
 <div class="page-header">
   <div>
     <h1>Dashboard</h1>
-    <p>Smart classroom workflow: prepare class data, run AI attendance monitoring, then review attendance and video evidence later.</p>
+    <p>Final demo control center for Smart Classroom with AI Monitoring: QR attendance, AI monitoring, reports, and teacher review workflow.</p>
   </div>
 
   <div class="page-actions">
-    <a class="action-btn secondary" href="/academics">Academics</a>
-    <a class="action-btn secondary" href="/sessions">Sessions</a>
+    <a class="action-btn secondary" href="/students">Students & QR</a>
+    <a class="action-btn secondary" href="/attendance/qr-scanner">QR Scanner</a>
+    <a class="action-btn secondary" href="/reports">Reports Center</a>
     <a class="action-btn" href="/ai-monitoring">Start AI Monitoring</a>
     <form method="post" action="/demo/reset" class="inline-form">
       <button class="danger" type="submit">Reset Demo</button>
@@ -47,6 +48,54 @@
       <strong>Review Later</strong>
       <p>Teacher checks attendance records and saved video evidence by session.</p>
     </div>
+  </div>
+</section>
+
+<section class="final-demo-panel">
+  <div class="panel-heading">
+    <div>
+      <span class="section-label">Final Demo Flow</span>
+      <h2>Teacher Demo Control Panel</h2>
+    </div>
+    <span class="status-pill status-info">Ready for presentation</span>
+  </div>
+
+  <div class="demo-control-grid">
+    <a href="/students" class="demo-control-card">
+      <span class="demo-num">01</span>
+      <strong>Student QR Cards</strong>
+      <p>View and download each student's permanent QR attendance card.</p>
+    </a>
+
+    <a href="/attendance/qr-scanner" class="demo-control-card">
+      <span class="demo-num">02</span>
+      <strong>QR Backup Scanner</strong>
+      <p>Open camera scanner and mark attendance into the current active session.</p>
+    </a>
+
+    <a href="/ai-monitoring" class="demo-control-card primary">
+      <span class="demo-num">03</span>
+      <strong>AI Monitoring</strong>
+      <p>Run camera monitoring for face attendance and behavior detection.</p>
+    </a>
+
+    <a href="/behavior-reports" class="demo-control-card">
+      <span class="demo-num">04</span>
+      <strong>Behavior Evidence</strong>
+      <p>Review phone-use or behavior alert snapshots for teacher decision.</p>
+    </a>
+
+    <a href="/reports" class="demo-control-card">
+      <span class="demo-num">05</span>
+      <strong>Reports Center</strong>
+      <p>Review attendance summary, QR/face methods, and AI event reports.</p>
+    </a>
+
+    <a href="/system-status" class="demo-control-card">
+      <span class="demo-num">06</span>
+      <strong>System Status</strong>
+      <p>Check backend, database, camera, AI model, and demo readiness.</p>
+    </a>
   </div>
 </section>
 
@@ -192,9 +241,17 @@
         <strong>Video Records</strong>
         <p>Saved clips for later tracking</p>
       </a>
+      <a href="/attendance/qr-scanner" class="quick-action-card">
+        <strong>QR Scanner</strong>
+        <p>Backup attendance by student QR card</p>
+      </a>
       <a href="/attendance" class="quick-action-card">
         <strong>Attendance</strong>
         <p>Present, late, absent records</p>
+      </a>
+      <a href="/reports" class="quick-action-card">
+        <strong>Reports Center</strong>
+        <p>Teacher review and final report summary</p>
       </a>
       <a href="/training" class="quick-action-card">
         <strong>AI Training</strong>
@@ -251,5 +308,94 @@
     {% endif %}
   </div>
 </section>
+
+
+<style>
+  .final-demo-panel {
+    margin: 18px 0;
+    padding: 22px;
+    border-radius: 28px;
+    background:
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.16), transparent 32%),
+      linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,249,255,0.96));
+    border: 1px solid rgba(14, 165, 233, 0.14);
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
+  }
+
+  .demo-control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .demo-control-card {
+    position: relative;
+    display: block;
+    min-height: 150px;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.86);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .demo-control-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(6, 182, 212, 0.35);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+  }
+
+  .demo-control-card.primary {
+    background:
+      radial-gradient(circle at top right, rgba(34, 211, 238, 0.24), transparent 42%),
+      #0f172a;
+    color: #ffffff;
+  }
+
+  .demo-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 34px;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 14px;
+  }
+
+  .demo-control-card.primary .demo-num {
+    background: rgba(34, 211, 238, 0.22);
+    color: #67e8f9;
+  }
+
+  .demo-control-card strong {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .demo-control-card p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.55;
+  }
+
+  .demo-control-card.primary p {
+    color: #cbd5e1;
+  }
+
+  @media (max-width: 980px) {
+    .demo-control-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 
 {% endblock %}
